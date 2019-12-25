@@ -1,11 +1,14 @@
 
 from pdb import set_trace as st
 import sys
+import re
 
 class Arger:
     sys_args = []
     args_parsed = []
     accepted_flags = []
+    unnamed_args = []
+    named_args = {}
 
     def __init__(self):
         self.sys_args = sys.argv
@@ -18,28 +21,22 @@ class Arger:
         for a in argv:
             self.accepted_flags.append(a)
 
-    # TODO object boolean attribute to accept arrays OR NOT?
     def parse(self):
-        for i, sys_arg in enumerate(self.sys_args):
-            if sys_arg[0] == "-" and sys_arg not in self.accepted_flags:
-                # TODO this is more of a developer orientated exception message?
-                raise ArgumentException("[Arger] " + sys_arg + " was not added and therefore not accepted.")
-            for j, arg_parsed in enumerate(self.args_parsed):
-                if sys_arg in arg_parsed.valid_flags:
-                    # Store value as True
-                    if arg_parsed.store_true:
-                        arg_parsed.arg_value = True
-                    # Store value as str
-                    else:
-                        arg_parsed.arg_value = []
-                        for next_argument_after_flag in self.sys_args[i+1:]:
-                            # ...until the start of the next argument flag...
-                            if next_argument_after_flag[0] == "-":
-                                break
-                            arg_parsed.arg_value.append(next_argument_after_flag)
-
-                        if len(arg_parsed.arg_value) == 0:
-                            raise ArgumentException("[Arger] Argument " + sys_arg + " expects a value!")
+        parsed_args = {}
+        sys_args_str = " ".join(self.sys_args[1:])
+        # Save all arguments before the first dash as unnamed
+        unnamed_args = sys_args_str.split(" -")[0]
+        named_args = re.findall("(-{1,2}\w* *\w*)", sys_args_str)
+        for arg in named_args:
+            flag = arg.strip().split(" ")[0]
+            arg_values = arg.strip().split(" ")[1:]
+            parsed_args[flag] = arg_values
+        for arg in parsed_args.keys():
+            # TODO even I don't know what this does tomorrow
+            if arg not in " ".join([" ".join(x.valid_flags) for x in self.args_parsed]).split(" "):
+                raise ArgumentException("Argument " + arg + " has not been specified in this program!")
+            # elif [] and parsed_args[arg] != []:
+            #     raise ArgumentException("Argument " + arg + " should not have argument values! (it is just a flag)")
 
     def readable(self):
         for arg in self.args_parsed:
