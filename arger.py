@@ -9,19 +9,38 @@ class Arger:
     accepted_flags = []
     unnamed_args = []
     named_args = {}
+    required_args = []
 
     def __init__(self):
         self.sys_args = sys.argv
 
-    def add_arg(self, *argv, store_true=False, help=""):
+    def add_arg(self, *argv, store_true=False, help="", required=False):
         for arg in argv:
             if arg in self.accepted_flags:
                 raise ArgumentException("[Arger] Multiple different arguments try to use the flag " + arg)
-        self.args_parsed.append(Argument(argv, store_true, help))
+        self.args_parsed.append(Argument(argv, store_true, help, required))
         for a in argv:
             self.accepted_flags.append(a)
+            if required:
+                self.required_args.append(a)
+
+    def print_help(self):
+        program_name = self.sys_args[0].split("/")[-1]
+        help_text = "usage: "
+        for arg in self.args_parsed:
+            help_text += "["
+            for i, flag in enumerate(arg.valid_flags):
+                if i != len(arg.valid_flags)-1:
+                    help_text += flag + "|"
+                else:
+                    help_text += flag + "] "
+        help_text += program_name
+        print(help_text)
+        sys.exit(0)
 
     def parse(self):
+        if "-h" in self.sys_args:
+            self.print_help()
         found_args = {}
         sys_args_str = " ".join(self.sys_args[1:])
         # Save all arguments before the first dash as unnamed
@@ -52,6 +71,10 @@ class Arger:
                         parsed_arg.arg_value = False
                     elif arg in parsed_arg.valid_flags and not parsed_arg.store_true:
                         parsed_arg.arg_value = found_args[arg]
+        # TODO possibly unsafe??
+        for req_arg in self.required_args:
+            if req_arg not in self.sys_args:
+                raise ArgumentException("Argument " + req_arg + " is required!")
 
     def readable(self):
         if self.unnamed_args:
@@ -69,10 +92,17 @@ class Argument:
     store_true = False
     help = ""
     arg_value = None
-    def __init__(self, flags, store_true, help):
+    required = False
+    def __init__(self, flags, store_true, help, required):
         self.valid_flags = flags
         self.store_true = store_true
         self.help = help
+        self.required = required
+    def __str__(self):
+        if type(self.arg_value) == list:
+            return " ".join(self.arg_value)
+        else:
+            return str(self.arg_value)
 
 if __name__ == "__main__":
     sys.exit("This is not a runnable script!")
