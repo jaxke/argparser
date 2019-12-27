@@ -28,13 +28,28 @@ class Arger:
         program_name = self.sys_args[0].split("/")[-1]
         help_text = "usage: "
         for arg in self.args_parsed:
-            help_text += "["
+            if not arg.required:
+                help_text += "["
             for i, flag in enumerate(arg.valid_flags):
                 if i != len(arg.valid_flags)-1:
                     help_text += flag + "|"
                 else:
-                    help_text += flag + "] "
+                    help_text += flag
+                    if not arg.required:
+                        help_text += "]"
+                    help_text += " "
         help_text += program_name
+        if self.required_args:
+            help_text += "\n\nRequired arguments:\n"
+            for arg in self.args_parsed:
+                if arg.required:
+                    help_text += ", ".join(arg.valid_flags) + "\t\t"
+                    if arg.help:
+                        help_text += arg.help
+        help_text += "\n\nNon-required arguments:\n"
+        for arg in self.args_parsed:
+            if not set(arg.valid_flags) <= set(self.required_args):
+                help_text += ", ".join(arg.valid_flags) + "\t\t" + arg.help + "\n"
         print(help_text)
         sys.exit(0)
 
