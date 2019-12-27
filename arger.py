@@ -10,6 +10,7 @@ class Arger:
     unnamed_args = []
     named_args = {}
     required_args = []
+    found_args = {}
 
     def __init__(self):
         self.sys_args = sys.argv
@@ -21,10 +22,8 @@ class Arger:
             if arg in self.accepted_flags:
                 raise ArgumentException("[Arger] Multiple different arguments try to use the flag " + arg)
         self.args_parsed.append(Argument(name, argv, store_true, help, required))
-        for a in argv:
-            self.accepted_flags.append(a)
-            if required:
-                self.required_args.append(a)
+        if required:
+            self.required_args.append(name)
 
     def print_help(self):
         program_name = self.sys_args[0].split("/")[-1]
@@ -59,46 +58,77 @@ class Arger:
     def parse(self):
         if "-h" in self.sys_args:
             self.print_help()
-        found_args = {}
         sys_args_str = " ".join(self.sys_args[1:])
         # Save all arguments before the first dash as unnamed
-        unnamed = sys_args_str.split(" -")[0]
-        for ua in unnamed.split(" "):
-            self.unnamed_args.append(ua)
+        unnamed_str = sys_args_str.split(" -")[0]
+        unnamed_args = unnamed_str.split(" ")
         # Consider all that start with - or --, select the words that belong to
         # that argument (that is words that appear before the next space+dash or eol)
         named_args = re.findall("(-{1,2}.*?)(?= *-|$)", sys_args_str)
+        named_args_dict = {}
         for arg in named_args:
+            arg_flag = arg.split(" ")[0]
+            named_args_dict[self.get_id_from_flag(arg_flag)] = arg.split(" ")[1:]
+        """ for arg in named_args:
             flag = arg.strip().split(" ")[0]
             arg_values = arg.strip().split(" ")[1:]
-            found_args[flag] = arg_values
+            self.found_args[flag] = arg_values """
         # Validate and add values to Argument objects in args_parsed
-        for arg in found_args.keys():
-            # TODO even I don't know what this does tomorrow
-            if arg not in " ".join([" ".join(x.valid_flags) for x in self.args_parsed]).split(" "):
-                raise ArgumentException("Argument " + arg + " has not been specified in this program!")
-            else:
-                for parsed_arg in self.args_parsed:
-                    if arg in parsed_arg.valid_flags and parsed_arg.store_true and found_args[arg] != []:
-                        raise ArgumentException("Argument " + arg + " stores true and does not expect a value!")
-                    elif arg in parsed_arg.valid_flags and not parsed_arg.store_true and found_args[arg] == []:
-                            raise ArgumentException("Argument " + arg + " expects a value!")
-                    elif arg in parsed_arg.valid_flags and parsed_arg.store_true:
-                        parsed_arg.arg_value = True
-                    elif arg not in parsed_arg.valid_flags and parsed_arg.store_true:
-                        parsed_arg.arg_value = False
-                    elif arg in parsed_arg.valid_flags and not parsed_arg.store_true:
-                        parsed_arg.arg_value = found_args[arg]
-        # TODO possibly unsafe??
-        for req_arg in self.required_args:
-            if req_arg not in self.sys_args:
-                raise ArgumentException("Argument " + req_arg + " is required!")
+        for arg in named_args_dict:
+            self.validate_used_args_datatype(arg, named_args_dict[arg])
+        self.found_args = self.get_sys_arg_dict(named_args_dict, unnamed_args)
+        self.validate_requirements_satisfied()
 
+    def validate_requirements_satisfied(self):
+        for req_arg in self.required_args:
+            for arg in self.found_args:
+                if arg == req_arg:
+                    continue
+
+    def get_id_from_flag(self, flag):
+        for arg in self.args_parsed:
+            if flag in arg.valid_flags:
+                return arg.arg_name
+        raise ArgumentException("Argument", flag, "has not been defined in this program!")
+
+    def get_sys_arg_dict(self, named_args, unnamed_args):
+        sys_args_dict = {}
+        sys_args_dict["Unnamed"] = []
+        for ua in unnamed_args:
+            sys_args_dict["Unnamed"].append(ua)
+        for na_key, na_val in named_args.items():
+            if na_val == []:
+                sys_args_dict[na_key] = True
+            else:
+                sys_args_dict[na_key] = na_val
+        return sys_args_dict
+        
+    # TODO once the option to choose whether an array is required or not, the validation should be here
+    def validate_used_args_datatype(self, arg_key, arg_val):
+        for parsed_arg in self.args_parsed:
+            if arg_key == parsed_arg.arg_name:
+                if arg_val == [] and parsed_arg.store_true:
+                    return True
+                elif arg_val != [] and parsed_arg.store_true:
+                    raise ArgumentException("Argument \"{}\" does not expect a value!".format(parsed_arg.valid_flags))
+                elif arg_val != [] and not parsed_arg.store_true:
+                    return True
+        # This should not be needed?
+        raise ArgumentException("Argument", arg_key, "has not been defined in this program!")
+        
     def readable(self):
-        if self.unnamed_args:
-            print("Unnamed args:", self.unnamed_args)
+        for ua in self.found_args:
+            print("{}: {}".format(ua, self.found_args[ua]))
         for arg in self.args_parsed:
             print("\nValid Flags: {}\nStore true: {}\nHelp: {}\nValue: {}".format(list(arg.valid_flags), arg.store_true, arg.help, arg.arg_value))
+
+    def arg_is_store_true(self, flag):
+        for arg in self.args_parsed:
+            if flag in arg.valid_flags:
+                if arg.store_true:
+                    return True
+                else:
+                    return False
 
 
 class ArgumentException(Exception):
