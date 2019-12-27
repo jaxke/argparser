@@ -14,11 +14,13 @@ class Arger:
     def __init__(self):
         self.sys_args = sys.argv
 
-    def add_arg(self, *argv, store_true=False, help="", required=False):
+    def add_arg(self, name, *argv, help="", store_true=False, required=False):
+        if name[0] == "-":
+            raise ArgumentException("[Arger] Missing argument name in " + name)
         for arg in argv:
             if arg in self.accepted_flags:
                 raise ArgumentException("[Arger] Multiple different arguments try to use the flag " + arg)
-        self.args_parsed.append(Argument(argv, store_true, help, required))
+        self.args_parsed.append(Argument(name, argv, store_true, help, required))
         for a in argv:
             self.accepted_flags.append(a)
             if required:
@@ -36,8 +38,9 @@ class Arger:
                 else:
                     help_text += flag
                     if not arg.required:
-                        help_text += "]"
-                    help_text += " "
+                        help_text += " {}] ".format(arg.arg_name)
+                    else:
+                        help_text += " {} ".format(arg.arg_name)
         help_text += program_name
         if self.required_args:
             help_text += "\n\nRequired arguments:\n"
@@ -103,16 +106,18 @@ class ArgumentException(Exception):
 
 
 class Argument:
+    arg_name = ""
     valid_flags = []
     store_true = False
     help = ""
     arg_value = None
     required = False
-    def __init__(self, flags, store_true, help, required):
+    def __init__(self, name, flags, store_true, help, required):
         self.valid_flags = flags
         self.store_true = store_true
         self.help = help
         self.required = required
+        self.arg_name = name
     def __str__(self):
         if type(self.arg_value) == list:
             return " ".join(self.arg_value)
