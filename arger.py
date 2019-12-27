@@ -80,15 +80,25 @@ class Arger:
         self.validate_requirements_satisfied()
 
     def validate_requirements_satisfied(self):
+        requirements_satisfied = []
         for req_arg in self.required_args:
-            for arg in self.found_args:
+            for i, arg in enumerate(self.found_args.keys()):
                 if arg == req_arg:
-                    continue
+                    requirements_satisfied.append(arg)
+        if requirements_satisfied != self.required_args:
+            non_satisfied_requirements = " ,".join(set(self.required_args) - set(requirements_satisfied))
+            raise ArgumentException("Argument(s) {} is required!".format(non_satisfied_requirements))
+
+    def get_flags_from_id(self, id):
+        for arg in self.args_parsed:
+            if arg.arg_name == id:
+                return arg.valid_flags
 
     def get_id_from_flag(self, flag):
         for arg in self.args_parsed:
             if flag in arg.valid_flags:
                 return arg.arg_name
+        # TODO this should not be here
         raise ArgumentException("Argument", flag, "has not been defined in this program!")
 
     def get_sys_arg_dict(self, named_args, unnamed_args):
