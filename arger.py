@@ -4,6 +4,7 @@ import sys
 import re
 
 class Arger:
+    # TODO need to clean up attributes and decide if dict is better than a list of objects
     sys_args = []
     args_parsed = []
     accepted_flags = []
@@ -14,6 +15,7 @@ class Arger:
     required_args = []
     found_args = {}
 
+    arguments = {}
 
     def __init__(self):
         self.sys_args = sys.argv
@@ -21,20 +23,22 @@ class Arger:
     # TODO maybe move the default values to the init of Argument?
     # TODO rename parameter argv to something more verbose
     # Adds argument objects to a list based on definitions.
-    def add_arg(self, name, *argv, help="", store_true=False, required=False):
+    def add_arg(self, name, *argv, help="", store_true=False, required=False, arg_type=None):
+        if store_true and arg_type:
+            raise ArgumentException("[Arger] Can't define an argument with store_true and arg_type in argument " + name)
         # TODO unsafe, don't use dashes for identification
         if name[0] == "-":
             raise ArgumentException("[Arger] Missing argument name in " + name)
         for arg in argv:
             if arg in self.accepted_flags:
                 raise ArgumentException("[Arger] Multiple different arguments try to use the flag " + arg)
-        self.args_parsed.append(Argument(name, argv, store_true, help, required))
+        self.args_parsed.append(Argument(name, argv, store_true, help, required, arg_type))
         self.accepted_flags.extend(argv)
         if required:
             self.required_args.append(name)
 
-    def add_positional_arg(self, name, help="", required=False):
-        self.positional_argument = PositionalArgument(name, help, required)
+    def add_positional_arg(self, name, help="", required=False, arg_type=None):
+        self.positional_arguments = PositionalArgument(name, help, required, arg_type)
 
     # TODO this method needs to work with positional arguments
     # Builds a help message from arguments that have been definied.
@@ -77,48 +81,135 @@ class Arger:
             self.print_help()
         sys_args_str = " ".join(self.sys_args[1:])
         # TODO Will 100% sure fail if positional arguments were not defined
-        self.positional_arguments, named_args = self.get_positional_arguments_from_sysargs()
+        pos_arguments, named_arguments = self.get_positional_arguments_from_sysargs()
         # Consider all that start with - or --, select the words that belong to
         # that argument (that is words that appear before the next space+dash or eol)
         #named_args = re.findall("(-{1,2}.*?)(?= *-|$)", sys_args_str)
-        named_args_dict = self.isolate_named_args_into_a_dict(named_args)
-        ############# DELETE ->
-        named_args_dict = {}
-        for arg in named_args:
-            arg_flag = arg.split(" ")[0]
-            named_args_dict[self.get_id_from_flag(arg_flag)] = arg.split(" ")[1:]
-        for arg in named_args_dict:
-            self.validate_used_args_datatype(arg, named_args_dict[arg])
-        self.found_args = self.get_sys_arg_dict(named_args_dict, self.positional_arguments)
-        # Will raise ArgumentException if validation fails
-        self.validate_requirements_satisfied()
+        named_args_dict = self.isolate_named_args_into_a_dict(named_arguments)
+        if not self.validate_and_cast_positional_args(pos_arguments):
+            raise ArgumentException
+        if not self.validate_and_cast_named_arguments(named_args_dict):
+            raise ArgumentException
+        if not self.validate_requirements_satisfied(pos_arguments, named_arguments):
+            raise ArgumentException
 
+    # All defined arguments that are "required" in method call in the parent script
+    # should be in the cmd arguments.
+    def validate_requirements_satisfied(self, pos_arguments, named_arguments):
+        requirements_satisfied = []
+        for req_arg in self.required_args:
+            for i, arg in enumerate(self.found_args.keys()):
+                if arg == req_arg:
+                    requirements_satisfied.append(arg)
+        if requirements_satisfied != self.required_args:
+            non_satisfied_requirements = " ,".join(set(self.required_args) - set(requirements_satisfied))
+            raise ArgumentException("Argument(s) {} is required!".format(non_satisfied_requirements))
+
+    # TODO need to ask if positional needs to be of type
+    # TODO exceptions should be raised here, hence the elifs
+    def validate_and_cast_positional_args(self, pos_arguments):
+        # add_positional_arg was never used and therefore unexpected
+        if not self.positional_arguments:
+            return False
+        if self.positional_arguments.arg_type == str:
+            if len(pos_arguments) < 1:
+                return False
+            elif len(pos_arguments) > 1:
+                return False
+            else:
+                self.arguments[self.positional_arguments.arg_name] = pos_arguments[0]
+                return True
+        elif self.positional_arguments.arg_type == list:
+            self.arguments[self.positional_arguments.arg_name] = pos_arguments
+            return True
+        elif self.positional_arguments.arg_type == int:
+            if len(pos_arguments) < 1:
+                return False
+            elif len(pos_arguments) > 1:
+                return False
+            else:
+                try:
+                    self.arguments[self.positional_arguments.arg_name] = int(pos_arguments[0])
+                    return True
+                except ValueError:
+                    return False
+
+    def validate_and_cast_named_arguments(self, named_args):
+        for arg_name, arg_value in named_args.items():
+            arg = None
+            for arg_parsed in self.args_parsed:
+                if arg_parsed.arg_name == arg_name:
+                    arg = arg_parsed
+                    break
+            if not self.args_parsed:
+                return False
+            if arg.arg_type == str:
+                if len(arg_value) < 1:
+                    raise ArgumentException("Expected argument {} to be a string, but it was not called with a value!".format(" ".join(self.get_flags_from_id(arg_name))))
+                    return False
+                elif len(arg_value) > 1:
+                    raise ArgumentException("Expected argument {} to be a single string but multiple values were found!".format(" ".join(self.get_flags_from_id(arg_name))))
+                    return False
+                else:
+                    self.arguments[arg_name] = arg_value[0]
+                    return True
+            elif arg.arg_type == list:
+                self.arguments[arg_name] = arg_value
+                return True
+            elif arg.arg_type == int:
+                if len(arg_value) < 1:
+                    raise ArgumentException("Expected argument {} to be a integer, but it was not called with a value!".format(" ".join(self.get_flags_from_id(arg_name))))
+                    return False
+                elif len(arg_value) > 1:
+                    raise ArgumentException("Expected argument {} to be a inteher, but it was called with multiple values!".format(" ".join(self.get_flags_from_id(arg_name))))
+                    return False
+                else:
+                    try:
+                        self.arguments[arg_name] = int(arg_value[0])
+                        return True
+                    except ValueError:
+                        raise ArgumentException("Expected argument {} to be a integer but, but {} cannot be cast to an integer!".format(" ".join(self.get_flags_from_id(arg_name)), arg_value))
+                        return False
+
+
+    # Take in everything past the positional args and turn them into a dictionary of flag-value pairs
     def isolate_named_args_into_a_dict(self, named_args):
         named_args_str = " ".join(named_args)
         named_args_dict = {}
         found_flags_in_sysargs = []
-        indexes_of_found_arguments = []
-        TEST_ARRAY = []
         for word in named_args:
             if self.is_a_defined_flag(word):
                 found_flags_in_sysargs.append(word)
         for i in range(len(found_flags_in_sysargs)):
             if i == len(found_flags_in_sysargs)-1:
-                TEST_ARRAY.append(named_args_str)
+                arg = named_args_str.split(" ")[0]
+                value =  named_args_str.split(" ")[1]
+                named_args_dict[self.get_id_from_flag(arg)] = value
                 break
+            # captures everything between the first character up until the next flag
             re_arg_and_values = re.search(r"^({}.*)(?= {})".format(found_flags_in_sysargs[i], found_flags_in_sysargs[i+1]), named_args_str)
+            # captures everything that follows the above substring
             re_rest           = re.search(r"({}.*)$".format(found_flags_in_sysargs[i+1]), named_args_str)
-            TEST_ARRAY.append(re_arg_and_values.group(0))
+            arg = re_arg_and_values.group(0).split(" ")[0]
+            value = re_arg_and_values.group(0).split(" ")[1:]
+            named_args_dict[self.get_id_from_flag(arg)] = value
+            # shorten the string as we go
             named_args_str = re_rest.group(0)
-            print()
-        sys.exit(0)
-        return None
+        # To keep it consistent, every value must be an array, even if there's no value (is a store_true arg) or if the value is a single string.
+        # There will be a validation later, but I think it should not belong here to avoid confusing code.
+        for key, val in named_args_dict.items():
+            if type(val) == str:
+                named_args_dict[key] = [val]
+            elif val == "":
+                named_args_dict[key] = []
+        return named_args_dict
 
 
     def get_positional_arguments_from_sysargs(self):
         sys_args_str = " ".join(self.sys_args[1:])
         pos_args_str = ""
         for i, word in enumerate(sys_args_str.split(" ")):
+            # Match with the first defined flag, everything before that belongs to positional arguments
             if self.is_a_defined_flag(word):
                 pos_args_str = " ".join(sys_args_str.split(" ")[:i])
                 rest = " ".join(sys_args_str.split(" ")[i:])
@@ -130,18 +221,6 @@ class Arger:
                 if accepted_flag == word:
                     return True
         return False
-
-    # All defined arguments that are "required" in method call in the parent script
-    # should be in the cmd arguments.
-    def validate_requirements_satisfied(self):
-        requirements_satisfied = []
-        for req_arg in self.required_args:
-            for i, arg in enumerate(self.found_args.keys()):
-                if arg == req_arg:
-                    requirements_satisfied.append(arg)
-        if requirements_satisfied != self.required_args:
-            non_satisfied_requirements = " ,".join(set(self.required_args) - set(requirements_satisfied))
-            raise ArgumentException("Argument(s) {} is required!".format(non_satisfied_requirements))
 
     # Parameter = argument identifier (name)
     # Return    = its valid flags
@@ -218,12 +297,16 @@ class Argument:
     help = ""
     arg_value = None
     required = False
-    def __init__(self, name, flags, store_true, help, required):
+    # So this will be default, however in add_arg method call the default is None
+    arg_type = str
+    def __init__(self, name, flags, store_true, help, required, arg_type):
         self.valid_flags = flags
         self.store_true = store_true
         self.help = help
         self.required = required
         self.arg_name = name
+        if arg_type:
+            self.arg_type = arg_type
     def __str__(self):
         if type(self.arg_value) == list:
             return " ".join(self.arg_value)
@@ -235,10 +318,13 @@ class PositionalArgument(Argument):
     help = ""
     arg_value = None
     required = False
-    def __init__(self, name, help, required):
+    arg_type = str
+    def __init__(self, name, help, required, arg_type):
         self.arg_name = name
         self.help = help
         self.required = required
+        if arg_type:
+            self.arg_type = arg_type
     def __str__(self):
         return " ".join(self.arg_value)
 
