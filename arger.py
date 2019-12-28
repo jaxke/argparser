@@ -7,25 +7,36 @@ class Arger:
     sys_args = []
     args_parsed = []
     accepted_flags = []
+    # TODO delete unnamed_args once positional arguments is completed
     unnamed_args = []
+    positional_arguments = None
     named_args = {}
     required_args = []
     found_args = {}
 
+
     def __init__(self):
         self.sys_args = sys.argv
 
+    # TODO maybe move the default values to the init of Argument?
+    # TODO rename parameter argv to something more verbose
     # Adds argument objects to a list based on definitions.
     def add_arg(self, name, *argv, help="", store_true=False, required=False):
+        # TODO unsafe, don't use dashes for identification
         if name[0] == "-":
             raise ArgumentException("[Arger] Missing argument name in " + name)
         for arg in argv:
             if arg in self.accepted_flags:
                 raise ArgumentException("[Arger] Multiple different arguments try to use the flag " + arg)
         self.args_parsed.append(Argument(name, argv, store_true, help, required))
+        self.accepted_flags.extend(argv)
         if required:
             self.required_args.append(name)
 
+    def add_positional_arg(self, name, help="", required=False):
+        self.positional_argument = PositionalArgument(name, help, required)
+
+    # TODO this method needs to work with positional arguments
     # Builds a help message from arguments that have been definied.
     def print_help(self):
         program_name = self.sys_args[0].split("/")[-1]
@@ -65,22 +76,60 @@ class Arger:
         if "-h" in self.sys_args:
             self.print_help()
         sys_args_str = " ".join(self.sys_args[1:])
-        # Save all arguments before the first dash as unnamed
-        # TODO this is not a good idea
-        unnamed_str = sys_args_str.split(" -")[0]
-        unnamed_args = unnamed_str.split(" ")
+        # TODO Will 100% sure fail if positional arguments were not defined
+        self.positional_arguments, named_args = self.get_positional_arguments_from_sysargs()
         # Consider all that start with - or --, select the words that belong to
         # that argument (that is words that appear before the next space+dash or eol)
-        named_args = re.findall("(-{1,2}.*?)(?= *-|$)", sys_args_str)
+        #named_args = re.findall("(-{1,2}.*?)(?= *-|$)", sys_args_str)
+        named_args_dict = self.isolate_named_args_into_a_dict(named_args)
+        ############# DELETE ->
         named_args_dict = {}
         for arg in named_args:
             arg_flag = arg.split(" ")[0]
             named_args_dict[self.get_id_from_flag(arg_flag)] = arg.split(" ")[1:]
         for arg in named_args_dict:
             self.validate_used_args_datatype(arg, named_args_dict[arg])
-        self.found_args = self.get_sys_arg_dict(named_args_dict, unnamed_args)
+        self.found_args = self.get_sys_arg_dict(named_args_dict, self.positional_arguments)
         # Will raise ArgumentException if validation fails
         self.validate_requirements_satisfied()
+
+    def isolate_named_args_into_a_dict(self, named_args):
+        named_args_str = " ".join(named_args)
+        named_args_dict = {}
+        found_flags_in_sysargs = []
+        indexes_of_found_arguments = []
+        TEST_ARRAY = []
+        for word in named_args:
+            if self.is_a_defined_flag(word):
+                found_flags_in_sysargs.append(word)
+        for i in range(len(found_flags_in_sysargs)):
+            if i == len(found_flags_in_sysargs)-1:
+                TEST_ARRAY.append(named_args_str)
+                break
+            re_arg_and_values = re.search(r"^({}.*)(?= {})".format(found_flags_in_sysargs[i], found_flags_in_sysargs[i+1]), named_args_str)
+            re_rest           = re.search(r"({}.*)$".format(found_flags_in_sysargs[i+1]), named_args_str)
+            TEST_ARRAY.append(re_arg_and_values.group(0))
+            named_args_str = re_rest.group(0)
+            print()
+        sys.exit(0)
+        return None
+
+
+    def get_positional_arguments_from_sysargs(self):
+        sys_args_str = " ".join(self.sys_args[1:])
+        pos_args_str = ""
+        for i, word in enumerate(sys_args_str.split(" ")):
+            if self.is_a_defined_flag(word):
+                pos_args_str = " ".join(sys_args_str.split(" ")[:i])
+                rest = " ".join(sys_args_str.split(" ")[i:])
+                break
+        return pos_args_str.split(" "), rest.split(" ")
+
+    def is_a_defined_flag(self, word):
+        for accepted_flag in self.accepted_flags:
+                if accepted_flag == word:
+                    return True
+        return False
 
     # All defined arguments that are "required" in method call in the parent script
     # should be in the cmd arguments.
@@ -107,6 +156,8 @@ class Arger:
         for arg in self.args_parsed:
             if flag in arg.valid_flags:
                 return arg.arg_name
+        return False
+        # TODO implement this elsewhere
         raise ArgumentException("Argument {} has not been defined in this program!".format(flag))
 
     # Builds a dict object to correspond the cmd arguments.
@@ -179,6 +230,17 @@ class Argument:
         else:
             return str(self.arg_value)
 
+class PositionalArgument(Argument):
+    arg_name = ""
+    help = ""
+    arg_value = None
+    required = False
+    def __init__(self, name, help, required):
+        self.arg_name = name
+        self.help = help
+        self.required = required
+    def __str__(self):
+        return " ".join(self.arg_value)
 
 if __name__ == "__main__":
     sys.exit("This is not a runnable script!")
