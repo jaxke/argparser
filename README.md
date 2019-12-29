@@ -2,6 +2,25 @@
 Argument parser for Python
 
 ## Usage  
+
+Initialize Arger object by calling ```arger.Arger()```. The following methods can be interacted with: 
+  
+```add_positional_arg(name, help="", required=False, arg_type=None)```  
+This method is used to define positional arguments, that is (usually) the main arguments that don't need an argument flag. ```name```  is used to identify the argument, ```help``` is a string for the help text. If ```required``` is True, the library will raise an ArgumentException if no positional arguments were used. ```arg_type``` supports str, int and list for now.  
+
+```add_arg(name, *flags, help="", store_true=False, required=False, arg_type=None)```  
+This methdo is used to define "named arguments", that means arguments that are grouped by the flags that were defined here. There may be multiple flags and they don't have to start with a dash (however this is not recommended). ```store_true``` may be used if the argument value should be a boolean value. Its value will be True if the flag is used in system arguments and will otherwise be False.  
+  
+```parse(safe=False)```  
+Parses arguments from command line and validates them against the arguments that were previously defined. Raises ArgumentException if any validation fails. ```safe``` flag is used if it is intended that a argument value may start with a dash (NOT RECOMMENDED, leave to default if at all possible).  
+  
+```readable()```   
+Mostly for debugging purposes, see below in code examples.  
+  
+```get_arg(name)```  
+Main way to access argument values.  
+  
+### Examples
 ```
 import arger
 
