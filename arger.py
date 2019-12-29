@@ -86,11 +86,12 @@ class Arger:
         # that argument (that is words that appear before the next space+dash or eol)
         #named_args = re.findall("(-{1,2}.*?)(?= *-|$)", sys_args_str)
         named_args_dict = self.isolate_named_args_into_a_dict(named_arguments)
+        # TODO NO RAISES HERE!!
         if not self.validate_and_cast_positional_args(pos_arguments):
             raise ArgumentException
         if not self.validate_and_cast_named_arguments(named_args_dict):
             raise ArgumentException
-        if not self.validate_requirements_satisfied(pos_arguments, named_arguments):
+        if not self.validate_requirements_satisfied(pos_arguments, named_args_dict):
             raise ArgumentException
 
     # All defined arguments that are "required" in method call in the parent script
@@ -98,12 +99,13 @@ class Arger:
     def validate_requirements_satisfied(self, pos_arguments, named_arguments):
         requirements_satisfied = []
         for req_arg in self.required_args:
-            for i, arg in enumerate(self.found_args.keys()):
+            for i, arg in enumerate(self.arguments.keys()):
                 if arg == req_arg:
                     requirements_satisfied.append(arg)
         if requirements_satisfied != self.required_args:
             non_satisfied_requirements = " ,".join(set(self.required_args) - set(requirements_satisfied))
             raise ArgumentException("Argument(s) {} is required!".format(non_satisfied_requirements))
+        return True
 
     # TODO need to ask if positional needs to be of type
     # TODO exceptions should be raised here, hence the elifs
@@ -152,10 +154,8 @@ class Arger:
                     return False
                 else:
                     self.arguments[arg_name] = arg_value[0]
-                    return True
             elif arg.arg_type == list:
                 self.arguments[arg_name] = arg_value
-                return True
             elif arg.arg_type == int:
                 if len(arg_value) < 1:
                     raise ArgumentException("Expected argument {} to be a integer, but it was not called with a value!".format(" ".join(self.get_flags_from_id(arg_name))))
@@ -170,6 +170,7 @@ class Arger:
                     except ValueError:
                         raise ArgumentException("Expected argument {} to be a integer but, but {} cannot be cast to an integer!".format(" ".join(self.get_flags_from_id(arg_name)), arg_value))
                         return False
+        return True
 
 
     # Take in everything past the positional args and turn them into a dictionary of flag-value pairs
@@ -270,11 +271,12 @@ class Arger:
     # Debugging
     def readable(self):
         # Prints arguments that were used in cmd
-        for ua in self.found_args:
-            print("{}: {}".format(ua, self.found_args[ua]))
+        for ua in self.arguments:
+            print("{}: {}".format(ua, self.arguments[ua]))
         # Prints arguments that were defined
         for arg in self.args_parsed:
-            print("\nValid Flags: {}\nStore true: {}\nHelp: {}\nValue: {}".format(list(arg.valid_flags), arg.store_true, arg.help, arg.arg_value))
+            print("\nArgument name: {}\nValid Flags: {}\nStore true: {}\nHelp: {}\nValue: {}".format(arg.arg_name, 
+            list(arg.valid_flags), arg.store_true, arg.help, arg.arg_value))
 
     # TODO needed or not?
     def arg_is_store_true(self, flag):
@@ -295,6 +297,7 @@ class Argument:
     valid_flags = []
     store_true = False
     help = ""
+    # TODO value does not come here anymore
     arg_value = None
     required = False
     # So this will be default, however in add_arg method call the default is None
