@@ -3,6 +3,8 @@ from pdb import set_trace as st
 import sys
 import re
 
+# TODO "this argument is not defined in this program"
+
 class Arger:
     # TODO need to clean up attributes and decide if dict is better than a list of objects
     sys_args = []
@@ -20,7 +22,6 @@ class Arger:
     def __init__(self):
         self.sys_args = sys.argv
 
-    # TODO rename parameter argv to something more verbose
     # Adds argument objects to a list based on definitions.
     def add_arg(self, name, *flags, help="", store_true=False, required=False, arg_type=None):
         if store_true and arg_type:
@@ -39,9 +40,6 @@ class Arger:
     def add_positional_arg(self, name, help="", required=False, arg_type=None):
         self.positional_arguments = PositionalArgument(name, help, required, arg_type)
 
-    # TODO this method needs to work with positional arguments
-    # TODO This can and should be done a single format() statement
-    # TODO fix tab length issues
     # Builds a help message from arguments that have been definied.
     def print_help(self):
         width = 30
@@ -94,7 +92,6 @@ class Arger:
         if "-h" in self.sys_args:
             self.print_help()
         sys_args_str = " ".join(self.sys_args[1:])
-        # TODO Will 100% sure fail if positional arguments were not defined
         pos_arguments, named_arguments = self.get_positional_arguments_from_sysargs()
         # Consider all that start with - or --, select the words that belong to
         # that argument (that is words that appear before the next space+dash or eol)
@@ -121,7 +118,6 @@ class Arger:
             raise ArgumentException("Argument(s) {} is required!".format(non_satisfied_requirements))
         return True
 
-    # TODO need to ask if positional needs to be of type
     # TODO exceptions should be raised here, hence the elifs
     # TODO remove all functionality of returns!
     def validate_and_cast_positional_args(self, pos_arguments):
@@ -220,7 +216,6 @@ class Arger:
                 named_args_dict[key] = []
         return named_args_dict
 
-
     def get_positional_arguments_from_sysargs(self):
         sys_args_str = " ".join(self.sys_args[1:])
         pos_args_str = ""
@@ -272,21 +267,6 @@ class Arger:
             else:
                 sys_args_dict[na_key] = na_val
         return sys_args_dict
-        
-    # TODO once the option to choose whether an array is required or not, the validation should be here
-    # Validates that store_true arguments don't have a value attached to them, and that arguments that 
-    # aren't store_true have value(s) attached to them.
-    def validate_used_args_datatype(self, arg_key, arg_val):
-        for parsed_arg in self.args_parsed:
-            if arg_key == parsed_arg.arg_name:
-                if arg_val == [] and parsed_arg.store_true:
-                    return True
-                elif arg_val != [] and parsed_arg.store_true:
-                    raise ArgumentException("Argument \"{}\" does not expect a value!".format(" ".join(parsed_arg.valid_flags)))
-                elif arg_val != [] and not parsed_arg.store_true:
-                    return True
-        # This should not be needed?
-        raise ArgumentException("Argument", arg_key, "has not been defined in this program!")
     
     # Debugging
     def readable(self):
