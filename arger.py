@@ -20,20 +20,19 @@ class Arger:
     def __init__(self):
         self.sys_args = sys.argv
 
-    # TODO maybe move the default values to the init of Argument?
     # TODO rename parameter argv to something more verbose
     # Adds argument objects to a list based on definitions.
-    def add_arg(self, name, *argv, help="", store_true=False, required=False, arg_type=None):
+    def add_arg(self, name, *flags, help="", store_true=False, required=False, arg_type=None):
         if store_true and arg_type:
             raise ArgumentException("[Arger] Can't define an argument with store_true and arg_type in argument " + name)
         # TODO unsafe, don't use dashes for identification
         if name[0] == "-":
             raise ArgumentException("[Arger] Missing argument name in " + name)
-        for arg in argv:
+        for arg in flags:
             if arg in self.accepted_flags:
                 raise ArgumentException("[Arger] Multiple different arguments try to use the flag " + arg)
-        self.args_parsed.append(Argument(name, argv, store_true, help, required, arg_type))
-        self.accepted_flags.extend(argv)
+        self.args_parsed.append(Argument(name, flags, store_true, help, required, arg_type))
+        self.accepted_flags.extend(flags)
         if required:
             self.required_args.append(name)
 
@@ -41,10 +40,21 @@ class Arger:
         self.positional_arguments = PositionalArgument(name, help, required, arg_type)
 
     # TODO this method needs to work with positional arguments
+    # TODO This can and should be done a single format() statement
+    # TODO fix tab length issues
     # Builds a help message from arguments that have been definied.
     def print_help(self):
+        width = 30
         program_name = self.sys_args[0].split("/")[-1]
         help_text = "usage: "
+        help_text += program_name
+        if self.positional_arguments:
+            help_text += " "
+            if self.positional_arguments.required:
+                help_text += self.positional_arguments.arg_name
+            else:
+                help_text += "[{}]".format(self.positional_arguments.arg_name)
+            help_text += " "
         for arg in self.args_parsed:
             if not arg.required:
                 help_text += "["
@@ -57,18 +67,22 @@ class Arger:
                         help_text += " {}] ".format(arg.arg_name)
                     else:
                         help_text += " {} ".format(arg.arg_name)
-        help_text += program_name
+        if self.positional_arguments:
+            help_text += "\n\nPositional arguments:\n"
+            help_text += self.positional_arguments.arg_name + " "*(width - len(self.positional_arguments.arg_name)) + self.positional_arguments.help
+            if self.positional_arguments.required:
+                help_text += " (required)"
         if self.required_args:
             help_text += "\n\nRequired arguments:\n"
             for arg in self.args_parsed:
                 if arg.required:
-                    help_text += ", ".join(arg.valid_flags) + "\t\t"
+                    help_text += ", ".join(arg.valid_flags) + " "*(width - len(", ".join(arg.valid_flags)))
                     if arg.help:
                         help_text += arg.help
         help_text += "\n\nNon-required arguments:\n"
         for arg in self.args_parsed:
             if not set(arg.valid_flags) <= set(self.required_args):
-                help_text += ", ".join(arg.valid_flags) + "\t\t" + arg.help + "\n"
+                help_text += ", ".join(arg.valid_flags) + " "*(width - len(", ".join(arg.valid_flags))) + arg.help + "\n"
         print(help_text)
         sys.exit(0)
 
@@ -109,10 +123,11 @@ class Arger:
 
     # TODO need to ask if positional needs to be of type
     # TODO exceptions should be raised here, hence the elifs
+    # TODO remove all functionality of returns!
     def validate_and_cast_positional_args(self, pos_arguments):
         # add_positional_arg was never used and therefore unexpected
         if not self.positional_arguments:
-            return False
+            return True
         if self.positional_arguments.arg_type == str:
             if len(pos_arguments) < 1:
                 return False
@@ -212,6 +227,11 @@ class Arger:
         for i, word in enumerate(sys_args_str.split(" ")):
             # Match with the first defined flag, everything before that belongs to positional arguments
             if self.is_a_defined_flag(word):
+                if i != 0 and not self.positional_arguments:
+                    raise ArgumentException("This program does not expect positional arguments!")
+                elif i == 0 and self.positional_arguments:
+                    if self.positional_arguments.required:
+                        raise ArgumentException("This program expects positional arguments!")
                 pos_args_str = " ".join(sys_args_str.split(" ")[:i])
                 rest = " ".join(sys_args_str.split(" ")[i:])
                 break
@@ -273,6 +293,8 @@ class Arger:
         # Prints arguments that were used in cmd
         for ua in self.arguments:
             print("{}: {}".format(ua, self.arguments[ua]))
+        if self.required_args:
+            print("\nPositional argument name: {}\nHelp: {}".format(self.positional_arguments.arg_name, self.positional_arguments.help))
         # Prints arguments that were defined
         for arg in self.args_parsed:
             print("\nArgument name: {}\nValid Flags: {}\nStore true: {}\nHelp: {}\nValue: {}".format(arg.arg_name, 
