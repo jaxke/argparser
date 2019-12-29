@@ -16,8 +16,6 @@ class Arger:
 
     # Adds argument objects to a list based on definitions.
     def add_arg(self, name, *flags, help="", store_true=False, required=False, arg_type=None):
-        if store_true and arg_type:
-            raise ArgumentException("Can't define an argument with store_true and arg_type in argument " + name)
         if name[0] == "-":
             raise ArgumentException("Argument can not start with a dash! ({})".format(name))
         for arg in flags:
@@ -89,7 +87,7 @@ class Arger:
         if "-h" in self.sys_args:
             self.print_help()
         for word in self.sys_args:
-            if word[0] == "-" and word not in self.accepted_flags:
+            if word[0] == "-" and word not in self.accepted_flags and safe == False:
                 raise ArgumentException("Flag {} has not been defined in this program!".format(word))
         sys_args_str = " ".join(self.sys_args[1:])
         pos_arguments, named_arguments = self.get_positional_arguments_from_sysargs()
@@ -142,6 +140,8 @@ class Arger:
         if not self.args_parsed:
             return
         for arg_name, arg_value in named_args.items():
+            if self.arg_is_store_true(arg_name) and arg_value:
+                raise ArgumentException("Argument {} does not except a value!".format(arg_name))
             arg = None
             for arg_parsed in self.args_parsed:
                 if arg_parsed.arg_name == arg_name:
@@ -167,6 +167,11 @@ class Arger:
                     except ValueError:
                         raise ArgumentException("Expected argument {} to be a integer but, but {} cannot be cast to an integer!".format(" ".join(self.get_flags_from_id(arg_name)), arg_value))
 
+    def arg_is_store_true(self, arg_name):
+        for arg in self.args_parsed:
+            if arg.arg_name == arg_name:
+                return arg.store_true
+        raise ArgumentException("Unknown error, {} not found?".format(arg_name))
 
     # Take in everything past the positional args and turn them into a dictionary of flag-value pairs
     def isolate_named_args_into_a_dict(self, named_args):
@@ -281,7 +286,11 @@ class Argument:
         self.help = help
         self.required = required
         self.arg_name = name
-        if arg_type:
+        if arg_type and store_true:
+            raise ArgumentException("Can not define an argument with store_true=True and arg_type!")
+        elif store_true:
+            self.arg_type = True
+        else:
             self.arg_type = arg_type
 
 class PositionalArgument(Argument):
