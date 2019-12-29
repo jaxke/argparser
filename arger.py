@@ -11,6 +11,8 @@ class Arger:
     required_args = []
     arguments = {}
 
+    # TODO if a store_true is defined but not enabled, it should be added any way, but as False
+
     def __init__(self):
         self.sys_args = sys.argv
 
@@ -166,6 +168,8 @@ class Arger:
                         self.arguments[arg_name] = int(arg_value[0])
                     except ValueError:
                         raise ArgumentException("Expected argument {} to be a integer but, but {} cannot be cast to an integer!".format(" ".join(self.get_flags_from_id(arg_name)), arg_value))
+            elif arg.store_true:
+                self.arguments[arg_name] = True
 
     def arg_is_store_true(self, arg_name):
         for arg in self.args_parsed:
@@ -184,7 +188,10 @@ class Arger:
         for i in range(len(found_flags_in_sysargs)):
             if i == len(found_flags_in_sysargs)-1:
                 arg = named_args_str.split(" ")[0]
-                value =  named_args_str.split(" ")[1]
+                try:
+                    value =  named_args_str.split(" ")[1]
+                except IndexError:
+                    value = []
                 named_args_dict[self.get_id_from_flag(arg)] = value
                 break
             # captures everything between the first character up until the next flag
