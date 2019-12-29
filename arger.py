@@ -40,6 +40,9 @@ class Arger:
     def add_positional_arg(self, name, help="", required=False, arg_type=None):
         self.positional_arguments = PositionalArgument(name, help, required, arg_type)
 
+    def get_arg(self, name):
+        return self.arguments[name]
+
     # Builds a help message from arguments that have been definied.
     def print_help(self):
         width = 30
