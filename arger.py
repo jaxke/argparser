@@ -142,8 +142,8 @@ class Arger:
         if not self.args_parsed:
             return
         for arg_name, arg_value in named_args.items():
-            if self.arg_is_store_true(arg_name) and arg_value:
-                raise ArgumentException("Argument {} does not except a value!".format(arg_name))
+            """ if self.arg_is_store_true(arg_name) and arg_value:
+                raise ArgumentException("Argument {} does not except a value!".format(arg_name)) """
             arg = None
             for arg_parsed in self.args_parsed:
                 if arg_parsed.arg_name == arg_name:
@@ -170,6 +170,11 @@ class Arger:
                         raise ArgumentException("Expected argument {} to be a integer but, but {} cannot be cast to an integer!".format(" ".join(self.get_flags_from_id(arg_name)), arg_value))
             elif arg.store_true:
                 self.arguments[arg_name] = True
+        for arg in self.args_parsed:
+            if arg.store_true and arg.arg_name not in named_args.keys():
+                # If a store_true arg is defined but not used in system args -> it will default to False for consistency
+                self.arguments[arg.arg_name] = False
+        
 
     def arg_is_store_true(self, arg_name):
         for arg in self.args_parsed:
@@ -190,8 +195,9 @@ class Arger:
                 arg = named_args_str.split(" ")[0]
                 try:
                     value =  named_args_str.split(" ")[1]
+                # This should mean that the LAST argument is a store_true (no values after flag -> instead there's eol)
                 except IndexError:
-                    value = []
+                    value = True
                 named_args_dict[self.get_id_from_flag(arg)] = value
                 break
             # captures everything between the first character up until the next flag
@@ -209,7 +215,7 @@ class Arger:
             if type(val) == str:
                 named_args_dict[key] = [val]
             elif val == "":
-                named_args_dict[key] = []
+                named_args_dict[key] = True
         return named_args_dict
 
     def get_positional_arguments_from_sysargs(self):
@@ -293,10 +299,12 @@ class Argument:
         self.help = help
         self.required = required
         self.arg_name = name
-        if arg_type and store_true:
+        if required and store_true:
+            raise ArgumentException("Can not define an argument with required=True and store_true=True!")
+        elif arg_type and store_true:
             raise ArgumentException("Can not define an argument with store_true=True and arg_type!")
         elif store_true:
-            self.arg_type = True
+            self.arg_type = bool
         else:
             self.arg_type = arg_type
 
