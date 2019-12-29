@@ -8,8 +8,8 @@ import arger
 ap = arger.Arger()
 ap.add_positional_arg("files", arg_type=list, help="Files that you want selected", required=True)
 ap.add_arg("append", "-a", "--append", help="Use this flag to append files")
-ap.add_arg("test1", "--delete", "-d", arg_type=list, required=True, help="Use this flag to delete files")
-ap.add_arg("test2", "-f", store_true=True, help="Test")
+ap.add_arg("delete", "--delete", "-d", arg_type=list, required=True, help="Use this flag to delete files")
+ap.add_arg("test_flag", "-f", store_true=True, help="Test")
 ap.parse()
 ap.readable()
 ```
@@ -18,8 +18,8 @@ ap.readable()
 ```
 ```
 files: ['file1', 'file2']
-test1: ['file3', 'file4']
-test2: True
+delete: ['file3', 'file4']
+test_flag: True
 
 Positional argument name: files
 Help: Files that you want selected
@@ -29,12 +29,12 @@ Valid Flags: ['-a', '--append']
 Store true: False
 Help: Use this flag to append files
 
-Argument name: test1
+Argument name: delete
 Valid Flags: ['--delete', '-d']
 Store true: False
 Help: Use this flag to delete files
 
-Argument name: test2
+Argument name: test_flag
 Valid Flags: ['-f']
 Store true: True
 Help: Test
@@ -46,4 +46,22 @@ print("Positional arguments:", pos_arg)
 ```
 ```
 Positional arguments: ['file1', 'file2']
+```
+```
+>> python3 test.py -h
+```
+
+```
+usage: test.py files [-a|--append append] --delete|-d delete [-f test_flag] 
+
+Positional arguments:
+files                         Files that you want selected (required)
+
+Required arguments:
+--delete, -d                  Use this flag to delete files
+
+Non-required arguments:
+-a, --append                  Use this flag to append files
+--delete, -d                  Use this flag to delete files
+-f                            Test
 ```
