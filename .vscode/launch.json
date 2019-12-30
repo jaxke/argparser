@@ -1,0 +1,24 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Arger Raw Test",
+            "type": "python",
+            "request": "launch",
+            "program": "/home/victor/scripts/arger/test.py",
+            "console": "integratedTerminal",
+            /* "args": ["file1", "file2", "-a", "abc", "file4"] */
+            "args": ["file1", "file2"]
+        },
+        {
+            "name": "Arger Unit Test",
+            "type": "python",
+            "request": "launch",
+            "program": "/home/victor/scripts/arger/unit_test.py",
+            "console": "integratedTerminal"
+        }
+    ]
+}

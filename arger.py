@@ -11,18 +11,27 @@ class Arger:
     required_args = []
     arguments = {}
 
-    # TODO if a store_true is defined but not enabled, it should be added any way, but as False
-
-    def __init__(self):
-        self.sys_args = sys.argv
+    # When testing, override system_arguments with given arg string
+    def __init__(self, test_mode_arguments=None):
+        self.sys_args = []
+        self.args_parsed = []
+        self.accepted_flags = []
+        self.positional_arguments = None
+        self.required_args = []
+        self.arguments = {}
+        if test_mode_arguments:
+            self.sys_args = test_mode_arguments.split(" ")
+        else:
+            self.sys_args = sys.argv
 
     # Adds argument objects to a list based on definitions.
     def add_arg(self, name, *flags, help="", store_true=False, required=False, arg_type=None):
         if name[0] == "-":
             raise ArgumentException("Argument can not start with a dash! ({})".format(name))
-        for arg in flags:
-            if arg in self.accepted_flags:
-                raise ArgumentException("Multiple different arguments try to use the flag {}".format(arg))
+        if self.test_for_id_collisions(name, self.positional_arguments, self. args_parsed):
+            raise ArgumentException("Can not define multiple arguments with name \"{}\"!".format(name))
+        if self.test_for_flag_collisions(self.args_parsed, flags):
+            raise ArgumentException("Multiple different arguments try to use the flag(s) {}!".format(" ".join(flags)))
         self.args_parsed.append(Argument(name, flags, store_true, help, required, arg_type))
         self.accepted_flags.extend(flags)
         if required:
@@ -31,8 +40,30 @@ class Arger:
     def add_positional_arg(self, name, help="", required=False, arg_type=None):
         self.positional_arguments = PositionalArgument(name, help, required, arg_type)
 
+    # TODO I'm not sure about returning None?
     def get_arg(self, name):
-        return self.arguments[name]
+        try:
+            return self.arguments[name]
+        except KeyError:
+            if self.positional_arguments.arg_name == name:
+                return self.positional_arguments.arg_name
+            else:
+                return None
+
+    def test_for_id_collisions(self, name, positional_arguments, args_parsed):
+        if positional_arguments.arg_name == name:
+            return True
+        for arg_parsed in args_parsed:
+            if arg_parsed.arg_name == name:
+                return True
+        return False
+
+    def test_for_flag_collisions(self, args_parsed, flags):
+        for arg in args_parsed:
+            for flag in flags:
+                if flag in arg.valid_flags:
+                    return True
+        return False
 
     # Builds a help message from arguments that have been definied.
     def print_help(self):
@@ -97,8 +128,8 @@ class Arger:
         # that argument (that is words that appear before the next space+dash or eol)
         #named_args = re.findall("(-{1,2}.*?)(?= *-|$)", sys_args_str)
         named_args_dict = self.isolate_named_args_into_a_dict(named_arguments)
-        self.validate_and_cast_positional_args(pos_arguments)
-        self.validate_and_cast_named_arguments(named_args_dict, safe)
+        self.arguments = self.validate_and_cast_positional_args(pos_arguments)
+        self.arguments.update(self.validate_and_cast_named_arguments(named_args_dict, safe))
         self.validate_requirements_satisfied(pos_arguments, named_args_dict)
 
     # All defined arguments that are "required" in method call in the parent script
@@ -115,6 +146,7 @@ class Arger:
         return True
 
     def validate_and_cast_positional_args(self, pos_arguments):
+        casted_pos_arguments_dict = {}
         # add_positional_arg was never used and therefore unexpected
         if not self.positional_arguments:
             return
@@ -124,9 +156,9 @@ class Arger:
             elif len(pos_arguments) > 1:
                 raise ArgumentException("Positional argument must be a single string!")
             else:
-                self.arguments[self.positional_arguments.arg_name] = pos_arguments[0]
+                casted_pos_arguments_dict[self.positional_arguments.arg_name] = pos_arguments[0]
         elif self.positional_arguments.arg_type == list:
-            self.arguments[self.positional_arguments.arg_name] = pos_arguments
+            casted_pos_arguments_dict[self.positional_arguments.arg_name] = pos_arguments
         elif self.positional_arguments.arg_type == int:
             if len(pos_arguments) < 1:
                 raise ArgumentException("Positional argument missing!")
@@ -134,11 +166,13 @@ class Arger:
                 raise ArgumentException("Positional argument must be a single integer!")
             else:
                 try:
-                    self.arguments[self.positional_arguments.arg_name] = int(pos_arguments[0])
+                    casted_pos_arguments_dict[self.positional_arguments.arg_name] = int(pos_arguments[0])
                 except ValueError:
                     raise ArgumentException("Positional argument must be an integer!")
+        return casted_pos_arguments_dict
 
     def validate_and_cast_named_arguments(self, named_args, safe):
+        casted_named_arguments_dict = {}
         if not self.args_parsed:
             return
         for arg_name, arg_value in named_args.items():
@@ -155,9 +189,9 @@ class Arger:
                 elif len(arg_value) > 1:
                     raise ArgumentException("Expected argument {} to be a single string but multiple values were found!".format(" ".join(self.get_flags_from_id(arg_name))))
                 else:
-                    self.arguments[arg_name] = arg_value[0]
+                    casted_named_arguments_dict[arg_name] = arg_value[0]
             elif arg.arg_type == list:
-                self.arguments[arg_name] = arg_value
+                casted_named_arguments_dict[arg_name] = arg_value
             elif arg.arg_type == int:
                 if len(arg_value) < 1:
                     raise ArgumentException("Expected argument {} to be a integer, but it was not called with a value!".format(" ".join(self.get_flags_from_id(arg_name))))
@@ -165,15 +199,16 @@ class Arger:
                     raise ArgumentException("Expected argument {} to be a inteher, but it was called with multiple values!".format(" ".join(self.get_flags_from_id(arg_name))))
                 else:
                     try:
-                        self.arguments[arg_name] = int(arg_value[0])
+                        casted_named_arguments_dict[arg_name] = int(arg_value[0])
                     except ValueError:
                         raise ArgumentException("Expected argument {} to be a integer but, but {} cannot be cast to an integer!".format(" ".join(self.get_flags_from_id(arg_name)), arg_value))
             elif arg.store_true:
-                self.arguments[arg_name] = True
+                casted_named_arguments_dict[arg_name] = True
         for arg in self.args_parsed:
             if arg.store_true and arg.arg_name not in named_args.keys():
                 # If a store_true arg is defined but not used in system args -> it will default to False for consistency
-                self.arguments[arg.arg_name] = False
+                casted_named_arguments_dict[arg.arg_name] = False
+        return casted_named_arguments_dict
         
 
     def arg_is_store_true(self, arg_name):
@@ -197,7 +232,10 @@ class Arger:
                     value =  named_args_str.split(" ")[1]
                 # This should mean that the LAST argument is a store_true (no values after flag -> instead there's eol)
                 except IndexError:
-                    value = True
+                    if self.arg_is_store_true(self.get_id_from_flag(found_flags_in_sysargs[i])):
+                        value = True
+                    else:
+                        raise ArgumentException("Argument {} expects a value!".format(arg))
                 named_args_dict[self.get_id_from_flag(arg)] = value
                 break
             # captures everything between the first character up until the next flag
@@ -221,6 +259,7 @@ class Arger:
     def get_positional_arguments_from_sysargs(self):
         sys_args_str = " ".join(self.sys_args[1:])
         pos_args_str = ""
+        rest = ""
         for i, word in enumerate(sys_args_str.split(" ")):
             # Match with the first defined flag, everything before that belongs to positional arguments
             if self.is_a_defined_flag(word):
@@ -282,6 +321,14 @@ class Arger:
 
 
 class ArgumentException(Exception):
+    # TODO 
+    error_messages = {
+        "excepts_positional_arguments": "This program expects positional arguments!",
+        "can_not_start_with_dash": "Argument {} can not start with a dash!",
+        "multiple_args_have_same_flag": "Multiple arguments try to use the flag {}!",
+        "flag_not_defined": "Flag {} has not been defined in this program!",
+        "argument_required_but_not_used": "Argument {} is required!",
+    }
     pass
 
 
