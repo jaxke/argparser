@@ -183,6 +183,8 @@ class Arger:
                 if arg_parsed.arg_name == arg_name:
                     arg = arg_parsed
                     break
+            if not arg.store_true and named_args[arg.arg_name] == []:
+                raise ArgumentException("Argument ({}) expects a value!".format(" ".join(arg.valid_flags)))
             if arg.arg_type == str:
                 if len(arg_value) < 1:
                     raise ArgumentException("Expected argument {} to be a string, but it was not called with a value!".format(" ".join(self.get_flags_from_id(arg_name))))
