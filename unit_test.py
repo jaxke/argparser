@@ -3,6 +3,17 @@ import arger
 from arger import ArgumentException
 import sys
 
+##### TODO #####
+'''
+    store_true argument not passed in: should always result into that variable being False
+    Try all the different types of ... types
+    Try to add argument with a type: x (meaning anythin not in accepted types)
+    store_true and type defined at the same time
+    pass in a dict
+    forget name, forget flag, forget both (should in future result into a ArgumentException, but not without modifications)
+
+'''
+
 args_dict = {
     # Forget mandatory flag
     "test1": "scriptname file1 file2",
@@ -30,7 +41,7 @@ def set_up_test(arg_key):
     return ap
 
 
-class TestArguments(unittest.TestCase):
+class TestRaises(unittest.TestCase):
     def test_raises_exception_without_required_arg(self):
         self.ap = set_up_test("test1")
         self.assertRaisesRegex(ArgumentException, r"^Argument\(s\) \w* is required!$", self.ap.parse)
@@ -101,13 +112,11 @@ class TypeTests(unittest.TestCase):
         self.ap = set_up_test("proper_with_all_flags_used_bee_int_list")
         self.assertRaises(ArgumentException, self.ap.parse)
         # TODO why does this fail
-        #self.assertRaisesRegex(ArgumentException, r"Expected argument \w+ to be a integer, but it was called with multiple values!", self.ap.parse())
-        
-
+        #self.assertRaisesRegex(ArgumentException, r"Expected argument .+ to be a integer, but it was called with multiple values!", self.ap.parse())
 
 
 if __name__ == "__main__":
     suite = unittest.TestSuite()
-    suite.addTest(TestArguments('test_raises_argument_with_nonboolean_arg_without_value'))
+    suite.addTest(TypeTests('test_start_program_with_incorrect_types_in_sys_args1'))
     #unittest.TextTestRunner().run(suite); sys.exit(0)
     unittest.main(verbosity=2)
