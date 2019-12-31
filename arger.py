@@ -352,7 +352,7 @@ class Argument:
             raise ArgumentException("Can not define an argument with store_true=True and arg_type!")
         elif store_true:
             self.arg_type = bool
-        else:
+        elif arg_type:
             self.arg_type = arg_type
 
 class PositionalArgument(Argument):

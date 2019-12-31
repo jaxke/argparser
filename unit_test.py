@@ -1,6 +1,7 @@
 import unittest
 import arger
 from arger import ArgumentException
+import sys
 
 args_dict = {
     # Forget mandatory flag
@@ -12,7 +13,9 @@ args_dict = {
     "test4": "scriptname -d file3",
     "test5": "scriptname file1 -d file ",
     "test6": "scriptname file1 -a -f",
-    "proper_with_all_flags_used": "scriptname file1 file2 -a file3 --delete abc1 abc2 -f"
+    "proper_with_all_flags_used": "scriptname file1 file2 -a file3 --delete abc1 abc2 -f",
+    "proper_with_all_flags_used_files_int": "scriptname 1 -a file3 --delete abc1 abc2 -f"
+
 }
 
 def set_up_test(arg_key):
@@ -55,7 +58,7 @@ class TestArguments(unittest.TestCase):
         self.assertRaisesRegex(ArgumentException, r"^Multiple different arguments try to use the flag\(s\).*$", self.ap.add_arg, "test_abc", "-d", store_true=True, help="Test")
 
 class TypeTests(unittest.TestCase):
-    def test_check_types(self):
+    def test_check_types1(self):
         self.ap = set_up_test("proper_with_all_flags_used")
         self.ap.parse()
         files = self.ap.get_arg("files")
@@ -67,9 +70,16 @@ class TypeTests(unittest.TestCase):
         self.assertEqual(delete, ["abc1", "abc2"])
         self.assertEqual(test_flag, True)
 
+    def test_check_types2(self):
+        ap = arger.Arger(args_dict["proper_with_all_flags_used_files_int"])
+        ap.add_positional_arg("files", arg_type=int, help="Files that you want selected", required=True)
+        ap.add_arg("append", "-a", "--append", help="Use this flag to append files")
+        ap.add_arg("delete", "--delete", "-d", arg_type=list, required=True, help="Use this flag to delete files")
+        ap.add_arg("test_flag", "-f", store_true=True, help="Test")
+
 
 if __name__ == "__main__":
     suite = unittest.TestSuite()
-    suite.addTest(TestArguments('test_raises_exception_when_trying_to_add_2_arguments_with_same_flag'))
-    #unittest.TextTestRunner().run(suite)
+    suite.addTest(TypeTests('test_check_types1'))
+    unittest.TextTestRunner().run(suite); sys.exit(0)
     unittest.main(verbosity=2)
