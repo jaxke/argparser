@@ -14,7 +14,9 @@ args_dict = {
     "test5": "scriptname file1 -d file ",
     "test6": "scriptname file1 -a -f",
     "proper_with_all_flags_used": "scriptname file1 file2 -a file3 --delete abc1 abc2 -f",
-    "proper_with_all_flags_used_files_int": "scriptname 1 -a file3 --delete abc1 abc2 -f"
+    "proper_with_all_flags_used_files_int": "scriptname 1 -a file3 --delete abc1 abc2 -f",
+    "proper_with_all_flags_used_bee_int_list": "scriptname 1 -a file3 --delete abc1 abc2 -f -b 1 2"
+
 
 }
 
@@ -22,6 +24,7 @@ def set_up_test(arg_key):
     ap = arger.Arger(args_dict[arg_key])
     ap.add_positional_arg("files", arg_type=list, help="Files that you want selected", required=True)
     ap.add_arg("append", "-a", "--append", help="Use this flag to append files")
+    ap.add_arg("bee", "-b", arg_type=int)
     ap.add_arg("delete", "--delete", "-d", arg_type=list, required=True, help="Use this flag to delete files")
     ap.add_arg("test_flag", "-f", store_true=True, help="Test")
     return ap
@@ -71,15 +74,39 @@ class TypeTests(unittest.TestCase):
         self.assertEqual(test_flag, True)
 
     def test_check_types2(self):
-        ap = arger.Arger(args_dict["proper_with_all_flags_used_files_int"])
-        ap.add_positional_arg("files", arg_type=int, help="Files that you want selected", required=True)
-        ap.add_arg("append", "-a", "--append", help="Use this flag to append files")
-        ap.add_arg("delete", "--delete", "-d", arg_type=list, required=True, help="Use this flag to delete files")
-        ap.add_arg("test_flag", "-f", store_true=True, help="Test")
+        self.ap = arger.Arger(args_dict["proper_with_all_flags_used_files_int"])
+        self.ap.add_positional_arg("files", arg_type=int, help="Files that you want selected", required=True)
+        self.ap.add_arg("append", "-a", "--append", help="Use this flag to append files")
+        self.ap.add_arg("delete", "--delete", "-d", arg_type=list, required=True, help="Use this flag to delete files")
+        self.ap.add_arg("test_flag", "-f", store_true=True, help="Test")
+        self.ap.parse()
+        files = self.ap.get_arg("files")
+        append = self.ap.get_arg("append")
+        delete = self.ap.get_arg("delete")
+        test_flag = self.ap.get_arg("test_flag")
+        self.assertEqual(files, 1)
+        self.assertEqual(append, "file3")
+        self.assertEqual(delete, ["abc1", "abc2"])
+        self.assertEqual(test_flag, True)
+
+    def test_raise_on_improper_type_definition_on_posarg(self):
+        self.ap = arger.Arger(args_dict["proper_with_all_flags_used_files_int"])
+        self.assertRaisesRegex(ArgumentException, r"^Type .* is not supported for a positional argument.$", self.ap.add_positional_arg, "files", arg_type=dict)
+    
+    def test_raise_on_improper_type_definition_on_named_arg(self):
+        self.ap = arger.Arger(args_dict["proper_with_all_flags_used_files_int"])
+        self.assertRaisesRegex(ArgumentException, r"^Type .* is not supported for a named argument.$", self.ap.add_arg, "append", "-a", arg_type=dict)
+
+    def test_start_program_with_incorrect_types_in_sys_args1(self):
+        self.ap = set_up_test("proper_with_all_flags_used_bee_int_list")
+        # TODO what
+        self.assertRaisesRegex(ArgumentException, r"Expected argument \w+ to be a integer, but it was called with multiple values!", self.ap.parse())
+        
+
 
 
 if __name__ == "__main__":
     suite = unittest.TestSuite()
-    suite.addTest(TypeTests('test_check_types1'))
+    suite.addTest(TypeTests('test_start_program_with_incorrect_types_in_sys_args1'))
     unittest.TextTestRunner().run(suite); sys.exit(0)
-    unittest.main(verbosity=2)
+    #unittest.main(verbosity=2)

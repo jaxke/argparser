@@ -51,7 +51,7 @@ class Arger:
                 return None
 
     def test_for_id_collisions(self, name, positional_arguments, args_parsed):
-        if positional_arguments.arg_name == name:
+        if self.positional_arguments and positional_arguments.arg_name == name:
             return True
         for arg_parsed in args_parsed:
             if arg_parsed.arg_name == name:
@@ -196,7 +196,7 @@ class Arger:
                 if len(arg_value) < 1:
                     raise ArgumentException("Expected argument {} to be a integer, but it was not called with a value!".format(" ".join(self.get_flags_from_id(arg_name))))
                 elif len(arg_value) > 1:
-                    raise ArgumentException("Expected argument {} to be a inteher, but it was called with multiple values!".format(" ".join(self.get_flags_from_id(arg_name))))
+                    raise ArgumentException("Expected argument {} to be a integer, but it was called with multiple values!".format(" ".join(self.get_flags_from_id(arg_name))))
                 else:
                     try:
                         casted_named_arguments_dict[arg_name] = int(arg_value[0])
@@ -229,7 +229,7 @@ class Arger:
             if i == len(found_flags_in_sysargs)-1:
                 arg = named_args_str.split(" ")[0]
                 try:
-                    value =  named_args_str.split(" ")[1]
+                    value =  named_args_str.split(" ")[1:]
                 # This should mean that the LAST argument is a store_true (no values after flag -> instead there's eol)
                 except IndexError:
                     if self.arg_is_store_true(self.get_id_from_flag(found_flags_in_sysargs[i])):
@@ -333,6 +333,7 @@ class ArgumentException(Exception):
 
 
 class Argument:
+    possible_types = [bool, int, list, str]
     arg_name = ""
     valid_flags = []
     store_true = False
@@ -346,16 +347,20 @@ class Argument:
         self.help = help
         self.required = required
         self.arg_name = name
+        # if arg_type = None, it will become str by default
         if required and store_true:
             raise ArgumentException("Can not define an argument with required=True and store_true=True!")
         elif arg_type and store_true:
             raise ArgumentException("Can not define an argument with store_true=True and arg_type!")
         elif store_true:
             self.arg_type = bool
+        elif arg_type and arg_type not in self.possible_types:
+            raise ArgumentException("Type {} is not supported for a named argument.".format(str(arg_type)))
         elif arg_type:
             self.arg_type = arg_type
 
 class PositionalArgument(Argument):
+    possible_types = [int, list, str]
     arg_name = ""
     help = ""
     required = False
@@ -364,7 +369,9 @@ class PositionalArgument(Argument):
         self.arg_name = name
         self.help = help
         self.required = required
-        if arg_type:
+        if arg_type not in self.possible_types:
+            raise ArgumentException("Type {} is not supported for a positional argument.".format(str(arg_type)))
+        elif arg_type:
             self.arg_type = arg_type
 
 if __name__ == "__main__":
