@@ -20,7 +20,7 @@ class Arger:
         self.required_args = []
         self.arguments = {}
         if test_mode_arguments:
-            self.sys_args = test_mode_arguments.split(" ")
+            self.sys_args = [x for x in test_mode_arguments.split(" ") if x != ""]
         else:
             self.sys_args = sys.argv
 
@@ -344,6 +344,8 @@ class Argument:
     # So this will be default, however in add_arg method call the default is None
     arg_type = str
     def __init__(self, name, flags, store_true, help, required, arg_type):
+        if not flags:
+            raise ArgumentException("A named argument needs to have flag(s)! ({})".format(name))
         self.valid_flags = flags
         self.store_true = store_true
         self.help = help
@@ -353,7 +355,7 @@ class Argument:
         if required and store_true:
             raise ArgumentException("Can not define an argument with required=True and store_true=True!")
         elif arg_type and store_true:
-            raise ArgumentException("Can not define an argument with store_true=True and arg_type!")
+            raise ArgumentException("Can not define an argument with store_true=True and arg_type (in {})!".format(name))
         elif store_true:
             self.arg_type = bool
         elif arg_type and arg_type not in self.possible_types:

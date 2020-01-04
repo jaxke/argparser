@@ -3,16 +3,6 @@ import arger
 from arger import ArgumentException
 import sys
 
-##### TODO #####
-'''
-    store_true argument not passed in: should always result into that variable being False
-    Try all the different types of ... types
-    Try to add argument with a type: x (meaning anythin not in accepted types)
-    store_true and type defined at the same time
-    pass in a dict
-    forget name, forget flag, forget both (should in future result into a ArgumentException, but not without modifications)
-
-'''
 
 args_dict = {
     # Forget mandatory flag
@@ -21,13 +11,13 @@ args_dict = {
     "test2": "scriptname file1 file2 -d",
     # Mandatory flag is properly entered
     "test3": "scriptname file1 file2 -d file3",
+    # No pos args
     "test4": "scriptname -d file3",
     "test5": "scriptname file1 -d file ",
     "test6": "scriptname file1 -a -f",
     "proper_with_all_flags_used": "scriptname file1 file2 -a file3 --delete abc1 abc2 -f",
     "proper_with_all_flags_used_files_int": "scriptname 1 -a file3 --delete abc1 abc2 -f",
-    "proper_with_all_flags_used_bee_int_list": "scriptname 1 -a file3 --delete abc1 abc2 -f -b 1 2"
-
+    "proper_with_all_flags_used_bee_int_list": "scriptname 1 -a file3 --delete abc1 abc2 -f -b 1 2",
 
 }
 
@@ -70,6 +60,13 @@ class TestRaises(unittest.TestCase):
     def test_raises_exception_when_trying_to_add_2_arguments_with_same_flag(self):
         self.ap = set_up_test("test4")
         self.assertRaisesRegex(ArgumentException, r"^Multiple different arguments try to use the flag\(s\).*$", self.ap.add_arg, "test_abc", "-d", store_true=True, help="Test")
+    def test_raises_when_named_arg_has_no_name(self):
+        ap = arger.Arger("")
+        self.assertRaisesRegex(ArgumentException, "Argument can not start with a dash!", ap.add_arg, "-a", "--append",arg_type=list, help="Files that you want selected", required=True)
+    def test_raises_when_named_arg_has_no_flags(self):
+        ap = arger.Arger("")
+        self.assertRaisesRegex(ArgumentException, r"A named argument needs to have flag\(s\)! \(.*\)", ap.add_arg, "a", arg_type=list, help="Files that you want selected", required=True)
+     
 
 class TypeTests(unittest.TestCase):
     def test_check_types1(self):
@@ -113,10 +110,28 @@ class TypeTests(unittest.TestCase):
         self.assertRaises(ArgumentException, self.ap.parse)
         # TODO why does this fail
         #self.assertRaisesRegex(ArgumentException, r"Expected argument .+ to be a integer, but it was called with multiple values!", self.ap.parse())
+    
+    def test_store_true_should_always_have_value(self):
+        self.ap = set_up_test("test5")
+        self.ap.parse()
+        test_flag = self.ap.get_arg("test_flag")
+        self.assertEqual(test_flag, False)
 
+    def test_raise_with_store_true_and_type(self):
+        self.ap = arger.Arger(args_dict["test3"])
+        self.assertRaisesRegex(ArgumentException, r"^Can not define an argument with store_true=True and arg_type \(.*\)!", self.ap.add_arg, "files", store_true=True, arg_type=list, help="Files that you want selected")
+   
+    
+"""  def test_raises_with_incompatible_type_in_def_posarg(self):
+        self.ap = arger.Arger(args_dict["test3"])
+        self.assertRaisesRegex(ArgumentException, r"^Type <.*> is not supported for a positional argument.", self.ap.add_positional_arg, "files", arg_type=dict, help="Files that you want selected")
+    def test_raises_with_incompatible_type_in_def_narg(self):
+        self.ap = arger.Arger(args_dict["test3"])
+        self.assertRaisesRegex(ArgumentException, r"^Type <.*> is not supported for a named argument.", self.ap.add_arg, "a", "-a", arg_type=dict, help="Files that you want selected")
+ """
 
 if __name__ == "__main__":
     suite = unittest.TestSuite()
-    suite.addTest(TypeTests('test_start_program_with_incorrect_types_in_sys_args1'))
-    #unittest.TextTestRunner().run(suite); sys.exit(0)
+    suite.addTest(TestRaises('test_raises_when_named_arg_has_no_flags'))
+    unittest.TextTestRunner().run(suite); sys.exit(0)
     unittest.main(verbosity=2)
