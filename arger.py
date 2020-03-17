@@ -3,6 +3,8 @@ from pdb import set_trace as st
 import sys
 import re
 
+# TODO RETURN ERROR IF NOT PARSED IN CLIENT
+
 class Arger:
     sys_args = []
     args_parsed = []
@@ -264,21 +266,20 @@ class Arger:
         sys_args_str = " ".join(self.sys_args[1:])
         pos_args_str = ""
         rest = ""
-        if not self.args_parsed:
-            pos_args_str = sys_args_str
-        else:
-            for i, word in enumerate(sys_args_str.split(" ")):
+        for i, word in enumerate(sys_args_str.split(" ")):
+            if self.is_a_defined_flag(word):
                 # Match with the first defined flag, everything before that belongs to positional arguments
-                if self.is_a_defined_flag(word):
-                    # TODO This is faulty logic and this should never happen?
-                    if i != 0 and not self.positional_arguments:
-                        raise ArgumentException("This program does not expect positional arguments!")
-                    elif i == 0 and self.positional_arguments:
-                        if self.positional_arguments.required:
-                            raise ArgumentException("This program expects positional arguments!")
-                    pos_args_str = " ".join(sys_args_str.split(" ")[:i])
-                    rest = " ".join(sys_args_str.split(" ")[i:])
-                    break
+                # TODO This is faulty logic and this should never happen?
+                if i != 0 and not self.positional_arguments:
+                    raise ArgumentException("This program does not expect positional arguments!")
+                elif i == 0 and self.positional_arguments:
+                    if self.positional_arguments.required:
+                        raise ArgumentException("This program expects positional arguments!")
+                pos_args_str = " ".join(sys_args_str.split(" ")[:i])
+                rest = " ".join(sys_args_str.split(" ")[i:])
+                break
+            else:
+                pos_args_str += word
         return pos_args_str.split(" "), rest.split(" ")
 
     def is_a_defined_flag(self, word):
