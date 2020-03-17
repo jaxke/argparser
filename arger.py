@@ -314,7 +314,7 @@ class Arger:
         # Prints arguments that were used in cmd
         for ua in self.arguments:
             print("{}: {}".format(ua, self.arguments[ua]))
-        if self.required_args:
+        if self.positional_arguments:
             print("\nPositional argument name: {}\nHelp: {}".format(self.positional_arguments.arg_name, self.positional_arguments.help))
         # Prints arguments that were defined
         for arg in self.args_parsed:
