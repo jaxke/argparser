@@ -128,8 +128,10 @@ class Arger:
         # that argument (that is words that appear before the next space+dash or eol)
         #named_args = re.findall("(-{1,2}.*?)(?= *-|$)", sys_args_str)
         named_args_dict = self.isolate_named_args_into_a_dict(named_arguments)
-        self.arguments = self.validate_and_cast_positional_args(pos_arguments)
-        self.arguments.update(self.validate_and_cast_named_arguments(named_args_dict, safe))
+        if pos_arguments:
+            self.arguments = self.validate_and_cast_positional_args(pos_arguments)
+        if named_args_dict:
+            self.arguments.update(self.validate_and_cast_named_arguments(named_args_dict, safe))
         self.validate_requirements_satisfied(pos_arguments, named_args_dict)
 
     # All defined arguments that are "required" in method call in the parent script
@@ -262,17 +264,21 @@ class Arger:
         sys_args_str = " ".join(self.sys_args[1:])
         pos_args_str = ""
         rest = ""
-        for i, word in enumerate(sys_args_str.split(" ")):
-            # Match with the first defined flag, everything before that belongs to positional arguments
-            if self.is_a_defined_flag(word):
-                if i != 0 and not self.positional_arguments:
-                    raise ArgumentException("This program does not expect positional arguments!")
-                elif i == 0 and self.positional_arguments:
-                    if self.positional_arguments.required:
-                        raise ArgumentException("This program expects positional arguments!")
-                pos_args_str = " ".join(sys_args_str.split(" ")[:i])
-                rest = " ".join(sys_args_str.split(" ")[i:])
-                break
+        if not self.args_parsed:
+            pos_args_str = sys_args_str
+        else:
+            for i, word in enumerate(sys_args_str.split(" ")):
+                # Match with the first defined flag, everything before that belongs to positional arguments
+                if self.is_a_defined_flag(word):
+                    # TODO This is faulty logic and this should never happen?
+                    if i != 0 and not self.positional_arguments:
+                        raise ArgumentException("This program does not expect positional arguments!")
+                    elif i == 0 and self.positional_arguments:
+                        if self.positional_arguments.required:
+                            raise ArgumentException("This program expects positional arguments!")
+                    pos_args_str = " ".join(sys_args_str.split(" ")[:i])
+                    rest = " ".join(sys_args_str.split(" ")[i:])
+                    break
         return pos_args_str.split(" "), rest.split(" ")
 
     def is_a_defined_flag(self, word):

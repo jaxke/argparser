@@ -1,3 +1,4 @@
+
 import unittest
 import arger
 from arger import ArgumentException
@@ -17,6 +18,8 @@ args_dict = {
     "test6": "scriptname file1 -a -f",
     "proper_with_all_flags_used": "scriptname file1 file2 -a file3 --delete abc1 abc2 -f",
     "proper_with_all_flags_used_files_int": "scriptname 1 -a file3 --delete abc1 abc2 -f",
+    "proper_with_all_flags_used_files_int_pos_arg_ONLY": "scriptname 1",
+    "proper_with_all_flags_used_files_str": "scriptname abc -a file3 --delete abc1 abc2 -f",
     "proper_with_all_flags_used_bee_int_list": "scriptname 1 -a file3 --delete abc1 abc2 -f -b 1 2",
 
 }
@@ -97,6 +100,21 @@ class TypeTests(unittest.TestCase):
         self.assertEqual(delete, ["abc1", "abc2"])
         self.assertEqual(test_flag, True)
 
+    def test_check_types3(self):
+        self.ap = arger.Arger(args_dict["proper_with_all_flags_used_files_str"])
+        self.ap.add_positional_arg("files", help="Files that you want selected", required=True)
+        self.ap.parse()
+        files = self.ap.get_arg("files")
+        self.assertEqual(files, "abc")
+
+    def test_check_types4(self):
+        self.ap = arger.Arger(args_dict["proper_with_all_flags_used_files_int_pos_arg_ONLY"])
+        self.ap.add_positional_arg("files", arg_type=int, help="Files that you want selected", required=True)
+        self.ap.parse()
+        files = self.ap.get_arg("files")
+        self.assertEqual(files, 1)
+        
+
     def test_raise_on_improper_type_definition_on_posarg(self):
         self.ap = arger.Arger(args_dict["proper_with_all_flags_used_files_int"])
         self.assertRaisesRegex(ArgumentException, r"^Type .* is not supported for a positional argument.$", self.ap.add_positional_arg, "files", arg_type=dict)
@@ -132,6 +150,6 @@ class TypeTests(unittest.TestCase):
 
 if __name__ == "__main__":
     suite = unittest.TestSuite()
-    suite.addTest(TestRaises('test_raises_when_named_arg_has_no_flags'))
+    suite.addTest(TypeTests('test_check_types4'))
     unittest.TextTestRunner().run(suite); sys.exit(0)
     unittest.main(verbosity=2)
