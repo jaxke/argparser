@@ -373,7 +373,7 @@ class PositionalArgument(Argument):
         self.arg_name = name
         self.help = help
         self.required = required
-        if arg_type not in self.possible_types:
+        if arg_type and arg_type not in self.possible_types:
             raise ArgumentException("Type {} is not supported for a positional argument.".format(str(arg_type)))
         elif arg_type:
             self.arg_type = arg_type
