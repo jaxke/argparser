@@ -133,7 +133,10 @@ class Arger:
         if pos_arguments:
             self.arguments = self.validate_and_cast_positional_args(pos_arguments)
         if named_args_dict:
-            self.arguments.update(self.validate_and_cast_named_arguments(named_args_dict, safe))
+            try:
+                self.arguments.update(self.validate_and_cast_named_arguments(named_args_dict, safe))
+            except AttributeError:
+                self.arguments = self.validate_and_cast_named_arguments(named_args_dict, safe)
         self.validate_requirements_satisfied(pos_arguments, named_args_dict)
 
     # All defined arguments that are "required" in method call in the parent script
