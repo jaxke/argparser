@@ -47,7 +47,7 @@ class Arger:
         try:
             return self.arguments[name]
         except KeyError:
-            if self.positional_arguments.arg_name == name:
+            if self.positional_arguments and self.positional_arguments.arg_name == name:
                 return self.positional_arguments.arg_name
             else:
                 return None
