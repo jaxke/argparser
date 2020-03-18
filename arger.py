@@ -44,8 +44,10 @@ class Arger:
 
     # TODO I'm not sure about returning None?
     def get_arg(self, name):
+        if not self.arguments:
+            return None
         try:
-            return self.arguments[name]
+            return self.arguments.get(name)
         except KeyError:
             if self.positional_arguments and self.positional_arguments.arg_name == name:
                 return self.positional_arguments.arg_name
