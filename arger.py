@@ -124,7 +124,7 @@ class Arger:
         if "-h" in self.sys_args:
             self.print_help()
         for word in self.sys_args:
-            if word[0] == "-" and word not in self.accepted_flags and safe == False:
+            if word and word[0] == "-" and word not in self.accepted_flags and safe == False:
                 raise ArgumentException("Flag {} has not been defined in this program!".format(word))
         sys_args_str = " ".join(self.sys_args[1:])
         pos_arguments, named_arguments = self.get_positional_arguments_from_sysargs()
