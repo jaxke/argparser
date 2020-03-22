@@ -3,6 +3,8 @@ from pdb import set_trace as st
 import sys
 import re
 
+# TODO Names need to be more specific, too many local and class-wide "arguments" etc, debugging is difficult
+
 class Arger:
     sys_args = []
     args_parsed = []
@@ -74,15 +76,15 @@ class Arger:
 
     # Builds a help message from arguments that have been definied.
     # TODO remove "argument name" from store_true:: usage: script.py-f file [-t|--toggle this_is_store_true]
-    # TODO add space between script.py and the first arg:: usage: script.py-f file [-t|--toggle this_is_store_true]
+    # TODO (if no pos arg) add space between script.py and the first arg:: usage: script.py-f file [-t|--toggle this_is_store_true]
     # TODO required arg will show up in "Required arguments" and non required
     def print_help(self):
         width = 30
         program_name = self.sys_args[0].split("/")[-1]
         help_text = "usage: "
         help_text += program_name
+        help_text += " "
         if self.positional_arguments:
-            help_text += " "
             if self.positional_arguments.required:
                 help_text += self.positional_arguments.arg_name
             else:
@@ -281,7 +283,7 @@ class Arger:
         for i, word in enumerate(sys_args_str.split(" ")):
             if self.is_a_defined_flag(word):
                 # Match with the first defined flag, everything before that belongs to positional arguments
-                # TODO This is faulty logic and this should never happen?
+                # TODO pos arguments should be accepted in the ending as well?
                 if i != 0 and not self.positional_arguments:
                     raise ArgumentException("This program does not expect positional arguments!")
                 elif i == 0 and self.positional_arguments:
