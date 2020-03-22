@@ -75,9 +75,6 @@ class Arger:
         return False
 
     # Builds a help message from arguments that have been definied.
-    # TODO remove "argument name" from store_true:: usage: script.py-f file [-t|--toggle this_is_store_true]
-    # TODO (if no pos arg) add space between script.py and the first arg:: usage: script.py-f file [-t|--toggle this_is_store_true]
-    # TODO required arg will show up in "Required arguments" and non required
     def print_help(self):
         width = 30
         program_name = self.sys_args[0].split("/")[-1]
@@ -116,7 +113,7 @@ class Arger:
                         help_text += arg.help
         help_text += "\n\nNon-required arguments:\n"
         for arg in self.args_parsed:
-            if not set(arg.valid_flags) <= set(self.required_args):
+            if not arg.required:
                 help_text += ", ".join(arg.valid_flags) + " "*(width - len(", ".join(arg.valid_flags))) + arg.help + "\n"
         print(help_text)
         sys.exit(0)
@@ -168,6 +165,7 @@ class Arger:
             raise ArgumentException("Argument(s) {} is required!".format(non_satisfied_requirements))
         return True
 
+    # TODO full of redundancy, positional arguments should be already checked.
     def validate_and_cast_positional_args(self, pos_arguments):
         casted_pos_arguments_dict = {}
         # add_positional_arg was never used and therefore unexpected
@@ -291,8 +289,11 @@ class Arger:
                 flag_encountered = True
                 named_args.append(word)
             # Append beginning of command (before an arg flag is found) to positionals
-            elif not flag_encountered and self.positional_arguments:
-                pos_args.append(word)
+            elif not flag_encountered:
+                if self.positional_arguments:
+                    pos_args.append(word)
+                else:
+                    raise ArgumentException("This program does not expect positional arguments!")
             # If positional arg is expected, check if it is the LAST WORD of the command. This is only usable if the expected pos arg is int or str
             elif flag_encountered and not pos_args and self.positional_arguments and i == len(sys_args_str.split(" ")) - 1 and (self.positional_arguments.arg_type == str or self.positional_arguments.arg_type == int):
                 if self.get_id_from_flag(named_args[-1]):
@@ -303,26 +304,6 @@ class Arger:
             else:
                 named_args.append(word)
         return pos_args, named_args
-
-    """ def get_positional_arguments_from_sysargs2(self):
-        sys_args_str = " ".join(self.sys_args[1:])
-        pos_args_str = ""
-        rest = ""
-        for i, word in enumerate(sys_args_str.split(" ")):
-            if self.is_a_defined_flag(word):
-                # Match with the first defined flag, everything before that belongs to positional arguments
-                # TODO pos arguments should be accepted in the ending as well?
-                if i != 0 and not self.positional_arguments:
-                    raise ArgumentException("This program does not expect positional arguments!")
-                elif i == 0 and self.positional_arguments:
-                    if self.positional_arguments.required:
-                        raise ArgumentException("This program expects positional arguments!")
-                pos_args_str = " ".join(sys_args_str.split(" ")[:i])
-                rest = " ".join(sys_args_str.split(" ")[i:])
-                break
-            else:
-                pos_args_str += word
-        return pos_args_str.split(" "), rest.split(" ") """
 
     def is_a_defined_flag(self, word):
         for accepted_flag in self.accepted_flags:
