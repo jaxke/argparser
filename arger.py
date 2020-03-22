@@ -39,6 +39,8 @@ class Arger:
             self.required_args.append(name)
 
     def add_positional_arg(self, name, help="", required=False, arg_type=None):
+        if self.positional_arguments:
+            raise ArgumentException("Can not define a positional argument multiple times!")
         self.positional_arguments = PositionalArgument(name, help, required, arg_type)
 
     # TODO I'm not sure about returning None?
