@@ -136,6 +136,11 @@ class Arger:
                 raise ArgumentException("Flag {} has not been defined in this program!".format(word))
         sys_args_str = " ".join(self.sys_args[1:])
         pos_arguments, named_arguments = self.get_positional_arguments_from_sysargs()
+        # TODO add to validate and cast method
+        """ if self.positional_arguments and not pos_arguments:
+            raise ArgumentException("This program expects positional arguments!")
+        elif not self.positional_arguments and pos_arguments:
+            raise ArgumentException("This program does not expect positional arguments!") """
         # Consider all that start with - or --, select the words that belong to
         # that argument (that is words that appear before the next space+dash or eol)
         #named_args = re.findall("(-{1,2}.*?)(?= *-|$)", sys_args_str)
@@ -276,7 +281,32 @@ class Arger:
                 named_args_dict[key] = True
         return named_args_dict
 
+    # TODO add restriction: if pos arg is a list, it must be in front of the command
+    # ... add the raises somewhere from get_positional_arguments_from_sysargs2
     def get_positional_arguments_from_sysargs(self):
+        sys_args_str = " ".join(self.sys_args[1:])
+        flag_encountered = False
+        pos_args = []
+        named_args = []
+        for i, word in enumerate(sys_args_str.split(" ")):
+            if self.is_a_defined_flag(word):
+                flag_encountered = True
+                named_args.append(word)
+            # Append beginning of command (before an arg flag is found) to positionals
+            elif not flag_encountered and self.positional_arguments:
+                pos_args.append(word)
+            # If positional arg is expected, check if it is the LAST WORD of the command. This is only usable if the expected pos arg is int or str
+            elif flag_encountered and not pos_args and self.positional_arguments and i == len(sys_args_str.split(" ")) - 1 and self.positional_arguments.arg_type == str or self.positional_arguments.arg_type == int:
+                if self.get_id_from_flag(named_args[-1]):
+                    # And lastly make sure that the last word does not belong to a named argument's parameters
+                    if not self.arg_is_store_true(self.get_id_from_flag(named_args[-1])):
+                        raise ArgumentException("This program expects positional arguments!")
+                pos_args.append(str(word))
+            else:
+                named_args.append(word)
+        return pos_args, named_args
+
+    """ def get_positional_arguments_from_sysargs2(self):
         sys_args_str = " ".join(self.sys_args[1:])
         pos_args_str = ""
         rest = ""
@@ -294,7 +324,7 @@ class Arger:
                 break
             else:
                 pos_args_str += word
-        return pos_args_str.split(" "), rest.split(" ")
+        return pos_args_str.split(" "), rest.split(" ") """
 
     def is_a_defined_flag(self, word):
         for accepted_flag in self.accepted_flags:
