@@ -12,6 +12,7 @@ class Arger:
     positional_arguments = None
     required_args = []
     arguments = {}
+    PARSED = False
 
     # When testing, override system_arguments with given arg string
     def __init__(self, test_mode_arguments=None):
@@ -44,6 +45,8 @@ class Arger:
 
     # TODO I'm not sure about returning None?
     def get_arg(self, name):
+        if not self.PARSED:
+            raise ArgumentException("Trying to access arguments without parsing them first!")
         if not self.arguments:
             return None
         try:
@@ -140,6 +143,7 @@ class Arger:
             except AttributeError:
                 self.arguments = self.validate_and_cast_named_arguments(named_args_dict, safe)
         self.validate_requirements_satisfied(pos_arguments, named_args_dict)
+        self.PARSED = True
 
     # All defined arguments that are "required" in method call in the parent script
     # should be in the cmd arguments.
