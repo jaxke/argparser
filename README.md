@@ -7,12 +7,14 @@ Initialize Arger object by calling ```arger.Arger()```. The following methods ca
   
 ```add_positional_arg(name, help="", required=False, arg_type=None)```  
 This method is used to define positional arguments, that is (usually) the main arguments that don't need an argument flag. ```name```  is used to identify the argument, ```help``` is a string for the help text. If ```required``` is True, the library will raise an ArgumentException if no positional arguments were used. ```arg_type``` supports str, int and list for now.  
-
-```add_arg(name, *flags, help="", store_true=False, required=False, arg_type=None)```  
-This methdo is used to define "named arguments", that means arguments that are grouped by the flags that were defined here. There may be multiple flags and they don't have to start with a dash (however this is not recommended). ```store_true``` may be used if the argument value should be a boolean value. Its value will be True if the flag is used in system arguments and will otherwise be False.  
   
-```parse(safe=False)```  
-Parses arguments from command line and validates them against the arguments that were previously defined. Raises ArgumentException if any validation fails. ```safe``` flag is used if it is intended that a argument value may start with a dash (NOT RECOMMENDED, leave to default if at all possible).  
+Positional arguments may appear in the beginning or the ending of the command. If positional arguments is expected to be a list, it can only appear in the beginning.  
+  
+```add_arg(name, *flags, help="", store_true=False, required=False, arg_type=None)```  
+This methdod is used to define "named arguments", that means arguments that are grouped by the flags that were defined here. There may be multiple flags and they don't have to start with a dash (however this is not recommended). ```store_true``` may be used if the argument value should be a boolean value. Its value will be True if the flag is used in system arguments and will otherwise be False.  
+  
+```parse()```  
+Parses arguments from command line and validates them against the arguments that were previously defined.  
   
 ```readable()```   
 Mostly for debugging purposes, see below in code examples.  
@@ -37,6 +39,7 @@ ap.readable()
 ```
 ```
 files: ['file1', 'file2']
+append: abc
 delete: ['file3', 'file4']
 test_flag: True
 
@@ -58,7 +61,7 @@ Valid Flags: ['-f']
 Store true: True
 Help: Test
 ```
-
+  
 ```
 pos_arg = ap.get_arg("files")
 print("Positional arguments:", pos_arg)
@@ -81,6 +84,5 @@ Required arguments:
 
 Non-required arguments:
 -a, --append                  Use this flag to append files
---delete, -d                  Use this flag to delete files
 -f                            Test
 ```
