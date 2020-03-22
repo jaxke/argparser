@@ -3,8 +3,6 @@ from pdb import set_trace as st
 import sys
 import re
 
-# TODO RETURN ERROR IF NOT PARSED IN CLIENT
-
 class Arger:
     sys_args = []
     args_parsed = []
@@ -73,6 +71,9 @@ class Arger:
         return False
 
     # Builds a help message from arguments that have been definied.
+    # TODO remove "argument name" from store_true:: usage: script.py-f file [-t|--toggle this_is_store_true]
+    # TODO add space between script.py and the first arg:: usage: script.py-f file [-t|--toggle this_is_store_true]
+    # TODO required arg will show up in "Required arguments" and non required
     def print_help(self):
         width = 30
         program_name = self.sys_args[0].split("/")[-1]
