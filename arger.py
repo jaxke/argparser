@@ -29,7 +29,7 @@ class Arger:
     def add_arg(self, name, *flags, help="", store_true=False, required=False, arg_type=None):
         if name[0] == "-":
             raise ArgumentException("Argument can not start with a dash! ({})".format(name))
-        if self.test_for_id_collisions(name, self.positional_arguments, self. args_parsed):
+        if self.test_for_id_collisions(name):
             raise ArgumentException("Can not define multiple arguments with name \"{}\"!".format(name))
         if self.test_for_flag_collisions(self.args_parsed, flags):
             raise ArgumentException("Multiple different arguments try to use the flag(s) {}!".format(" ".join(flags)))
@@ -55,10 +55,10 @@ class Arger:
             else:
                 return None
 
-    def test_for_id_collisions(self, name, positional_arguments, args_parsed):
-        if self.positional_arguments and positional_arguments.arg_name == name:
+    def test_for_id_collisions(self, name):
+        if self.positional_arguments and self.positional_arguments.arg_name == name:
             return True
-        for arg_parsed in args_parsed:
+        for arg_parsed in self.args_parsed:
             if arg_parsed.arg_name == name:
                 return True
         return False
