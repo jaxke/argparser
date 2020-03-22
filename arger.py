@@ -199,7 +199,7 @@ class Arger:
                 if arg_parsed.arg_name == arg_name:
                     arg = arg_parsed
                     break
-            if not arg.store_true and named_args[arg.arg_name] == []:
+            if not arg.store_true and (named_args[arg.arg_name] == [] or named_args[arg.arg_name] == [""]):
                 raise ArgumentException("Argument ({}) expects a value!".format(" ".join(arg.valid_flags)))
             if arg.arg_type == str:
                 if len(arg_value) < 1:
