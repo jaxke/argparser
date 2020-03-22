@@ -281,8 +281,6 @@ class Arger:
                 named_args_dict[key] = True
         return named_args_dict
 
-    # TODO add restriction: if pos arg is a list, it must be in front of the command
-    # ... add the raises somewhere from get_positional_arguments_from_sysargs2
     def get_positional_arguments_from_sysargs(self):
         sys_args_str = " ".join(self.sys_args[1:])
         flag_encountered = False
@@ -296,7 +294,7 @@ class Arger:
             elif not flag_encountered and self.positional_arguments:
                 pos_args.append(word)
             # If positional arg is expected, check if it is the LAST WORD of the command. This is only usable if the expected pos arg is int or str
-            elif flag_encountered and not pos_args and self.positional_arguments and i == len(sys_args_str.split(" ")) - 1 and self.positional_arguments.arg_type == str or self.positional_arguments.arg_type == int:
+            elif flag_encountered and not pos_args and self.positional_arguments and i == len(sys_args_str.split(" ")) - 1 and (self.positional_arguments.arg_type == str or self.positional_arguments.arg_type == int):
                 if self.get_id_from_flag(named_args[-1]):
                     # And lastly make sure that the last word does not belong to a named argument's parameters
                     if not self.arg_is_store_true(self.get_id_from_flag(named_args[-1])):
