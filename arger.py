@@ -4,6 +4,7 @@ import sys
 import re
 
 # TODO Names need to be more specific, too many local and class-wide "arguments" etc, debugging is difficult
+# TODO remove "safe" option, it is completely pointless
 
 class Arger:
     sys_args = []
@@ -206,6 +207,8 @@ class Arger:
                     break
             if not arg.store_true and (named_args[arg.arg_name] == [] or named_args[arg.arg_name] == [""]):
                 raise ArgumentException("Argument ({}) expects a value!".format(" ".join(arg.valid_flags)))
+            elif arg.store_true and arg_value:
+                raise ArgumentException("Argument ({}) does not expect a value!".format(" ".join(arg.valid_flags)))
             if arg.arg_type == str:
                 if len(arg_value) < 1:
                     raise ArgumentException("Expected argument {} to be a string, but it was not called with a value!".format(" ".join(self.get_flags_from_id(arg_name))))
@@ -224,7 +227,7 @@ class Arger:
                     try:
                         casted_named_arguments_dict[arg_name] = int(arg_value[0])
                     except ValueError:
-                        raise ArgumentException("Expected argument {} to be a integer but, but {} cannot be cast to an integer!".format(" ".join(self.get_flags_from_id(arg_name)), arg_value))
+                        raise ArgumentException("Expected argument {} to be a integer!".format(" ".join(self.get_flags_from_id(arg_name)), arg_value))
             elif arg.store_true:
                 casted_named_arguments_dict[arg_name] = True
         for arg in self.args_parsed:
