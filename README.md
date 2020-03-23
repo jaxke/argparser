@@ -11,7 +11,7 @@ This method is used to define positional arguments, that is (usually) the main a
 Positional arguments may appear in the beginning or the ending of the command. If positional arguments is expected to be a list, it can only appear in the beginning.  
   
 ```add_arg(name, *flags, help="", store_true=False, required=False, arg_type=None)```  
-This methdod is used to define "named arguments", that means arguments that are grouped by the flags that were defined here. There may be multiple flags and they don't have to start with a dash (however this is not recommended). ```store_true``` may be used if the argument value should be a boolean value. Its value will be True if the flag is used in system arguments and will otherwise be False.  
+This methdod is used to define "named arguments", that means arguments that are grouped by the flags that were defined here. There may be multiple flags and they don't have to start with a dash. ```store_true``` may be used if the argument value should be a boolean value. Its value will be True if the flag is used in system arguments and will otherwise be False.  
   
 ```parse()```  
 Parses arguments from command line and validates them against the arguments that were previously defined.  
@@ -27,6 +27,7 @@ Main way to access argument values.
 import arger
 
 ap = arger.Arger()
+ap.add_help_text("Additional help ...", do_not_generate_helptext=False)
 ap.add_positional_arg("files", arg_type=list, help="Files that you want selected", required=True)
 ap.add_arg("append", "-a", "--append", help="Use this flag to append files")
 ap.add_arg("delete", "--delete", "-d", arg_type=list, required=True, help="Use this flag to delete files")
@@ -69,12 +70,14 @@ print("Positional arguments:", pos_arg)
 ```
 Positional arguments: ['file1', 'file2']
 ```
+  
+A help prompt is automatically generated.
 ```
 >> python3 test.py -h
 ```
 
 ```
-usage: test.py files [-a|--append append] --delete|-d delete [-f test_flag] 
+usage: unit_test_manuals.py files [-a|--append append] --delete|-d delete [-f test_flag] 
 
 Positional arguments:
 files                         Files that you want selected (required)
@@ -85,4 +88,7 @@ Required arguments:
 Non-required arguments:
 -a, --append                  Use this flag to append files
 -f                            Test
+
+Additional help ...
 ```
+

@@ -13,6 +13,8 @@ class Arger:
     positional_arguments = None
     required_args = []
     arguments = {}
+    custom_help = ""
+    do_not_generate_helptext = False
     PARSED = False
 
     # When testing, override system_arguments with given arg string
@@ -40,6 +42,10 @@ class Arger:
         self.accepted_flags.extend(flags)
         if required:
             self.required_args.append(name)
+
+    def add_help_text(self, help_text, do_not_generate_helptext=False):
+        self.custom_help = help_text
+        self.do_not_generate_helptext = do_not_generate_helptext
 
     def add_positional_arg(self, name, help="", required=False, arg_type=None):
         if self.positional_arguments:
@@ -77,45 +83,52 @@ class Arger:
 
     # Builds a help message from arguments that have been definied.
     def print_help(self):
-        width = 30
-        program_name = self.sys_args[0].split("/")[-1]
-        help_text = "usage: "
-        help_text += program_name
-        help_text += " "
-        if self.positional_arguments:
-            if self.positional_arguments.required:
-                help_text += self.positional_arguments.arg_name
-            else:
-                help_text += "[{}]".format(self.positional_arguments.arg_name)
+        help_text = ""
+        if not self.do_not_generate_helptext:
+            width = 30
+            program_name = self.sys_args[0].split("/")[-1]
+            help_text += "usage: "
+            help_text += program_name
             help_text += " "
-        for arg in self.args_parsed:
-            if not arg.required:
-                help_text += "["
-            for i, flag in enumerate(arg.valid_flags):
-                if i != len(arg.valid_flags)-1:
-                    help_text += flag + "|"
+            if self.positional_arguments:
+                if self.positional_arguments.required:
+                    help_text += self.positional_arguments.arg_name
                 else:
-                    help_text += flag
-                    if not arg.required:
-                        help_text += " {}] ".format(arg.arg_name)
-                    else:
-                        help_text += " {} ".format(arg.arg_name)
-        if self.positional_arguments:
-            help_text += "\n\nPositional arguments:\n"
-            help_text += self.positional_arguments.arg_name + " "*(width - len(self.positional_arguments.arg_name)) + self.positional_arguments.help
-            if self.positional_arguments.required:
-                help_text += " (required)"
-        if self.required_args:
-            help_text += "\n\nRequired arguments:\n"
+                    help_text += "[{}]".format(self.positional_arguments.arg_name)
+                help_text += " "
             for arg in self.args_parsed:
-                if arg.required:
-                    help_text += ", ".join(arg.valid_flags) + " "*(width - len(", ".join(arg.valid_flags)))
-                    if arg.help:
-                        help_text += arg.help
-        help_text += "\n\nNon-required arguments:\n"
-        for arg in self.args_parsed:
-            if not arg.required:
-                help_text += ", ".join(arg.valid_flags) + " "*(width - len(", ".join(arg.valid_flags))) + arg.help + "\n"
+                if not arg.required:
+                    help_text += "["
+                for i, flag in enumerate(arg.valid_flags):
+                    if i != len(arg.valid_flags)-1:
+                        help_text += flag + "|"
+                    else:
+                        help_text += flag
+                        if not arg.required:
+                            help_text += " {}] ".format(arg.arg_name)
+                        else:
+                            help_text += " {} ".format(arg.arg_name)
+            if self.positional_arguments:
+                help_text += "\n\nPositional arguments:\n"
+                help_text += self.positional_arguments.arg_name + " "*(width - len(self.positional_arguments.arg_name)) + self.positional_arguments.help
+                if self.positional_arguments.required:
+                    help_text += " (required)"
+            if self.required_args:
+                help_text += "\n\nRequired arguments:\n"
+                for arg in self.args_parsed:
+                    if arg.required:
+                        help_text += ", ".join(arg.valid_flags) + " "*(width - len(", ".join(arg.valid_flags)))
+                        if arg.help:
+                            help_text += arg.help
+            help_text += "\n\nNon-required arguments:\n"
+            for arg in self.args_parsed:
+                if not arg.required:
+                    help_text += ", ".join(arg.valid_flags) + " "*(width - len(", ".join(arg.valid_flags))) + arg.help + "\n"
+            help_text += "\n"
+        if self.custom_help:
+            help_text += self.custom_help
+        if not self.custom_help and self.do_not_generate_helptext:
+            help_text = "This program doesn't have a help page."
         print(help_text)
         sys.exit(0)
 
